@@ -114,6 +114,12 @@
   .summary .big{font-size:26px; line-height:1.3}
   .summary table{border-collapse:collapse; font-variant-numeric:tabular-nums}
   .summary td{padding:2px 18px 2px 0}
+  .summary .btn{cursor:pointer; border:1px solid var(--phos-faint); border-radius:3px;
+    padding:2px 10px; display:inline-block; margin:2px 4px 2px 0; user-select:none}
+  .summary .btn:hover{border-color:var(--phos-dim); color:#ffe9b0}
+  .hexgrid{display:grid; grid-template-columns:repeat(8,1fr); gap:2px; max-width:420px}
+  .hexgrid span{cursor:pointer; font-size:24px; text-align:center; padding:2px; border-radius:3px}
+  .hexgrid span:hover{background:rgba(255,176,0,.14)}
 
   /* ---------- right rail ---------- */
   .rail{display:flex; flex-direction:column; gap:14px}
@@ -201,6 +207,7 @@
         <div class="feed" id="feed" aria-live="off"></div>
         <div class="summary" id="summary"></div>
         <div class="lab" id="lab"></div>
+        <div class="summary" id="learn"></div>
         <div class="ticker" id="ticker">STANDBY · PRESS CAST TO OPEN THE FIELD</div>
       </div>
     </div>
@@ -236,14 +243,15 @@
 
   <div class="transport">
     <div class="keybank">
-      <button class="key rec" id="btnCast">● CAST</button>
+      <button class="key" id="btnOne">① ONE</button>
+      <button class="key" id="btnKilo">▦ 1000</button>
+      <button class="key rec" id="btnCast">▶ CAST</button>
       <button class="key" id="btnHold">‖ HOLD</button>
       <button class="key" id="btnRead">■ READ FIELD</button>
       <button class="key" id="btnClear">⏏ CLEAR</button>
       <button class="key" id="btnRain">⋮ RAIN</button>
       <button class="key" id="btnLab">⚗ LAB</button>
-      <button class="key" id="btnOne">① ONE</button>
-      <button class="key" id="btnKilo">▦ 1000</button>
+      <button class="key" id="btnLearn">✎ LEARN</button>
     </div>
     <div class="speed">
       <span class="legend">Speed</span>
@@ -459,6 +467,8 @@ addEventListener('resize',()=>{ if(rainView) drawGrid(); });
 function interval(){ const v=+$('speed').value; return 1500 - v*14.5; } // 1500ms .. 50ms
 function loop(){ if(!running) return; cast(); timer=setTimeout(loop, interval()); }
 function start(){ if(running) return; running=true; summaryEl.classList.remove('on');
+  const le=document.getElementById('learn'); le.classList.remove('on');
+  $('btnLearn')&&$('btnLearn').classList.remove('down'); if(typeof learnOpen!=='undefined') learnOpen=false;
   led('ledCast',true); $('btnCast').classList.add('down'); $('btnHold').classList.remove('down'); loop(); }
 function hold(){ running=false; clearTimeout(timer); led('ledCast',false);
   $('btnCast').classList.remove('down'); $('btnHold').classList.add('down');
@@ -515,6 +525,7 @@ $('btnOne').onclick=()=>{
     .filter(Boolean);
   showScreen(
     `<h2>SINGLE CAST${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
+    `<div class="big" style="margin-bottom:12px">${glyph(kw)} ${kw}${moving.length?` <span class="dim">→</span> ${glyph(trans)} ${trans}`:''}</div>`+
     `<div style="display:flex; gap:34px; align-items:center; flex-wrap:wrap">`+
     `<div class="big" style="font-size:56px">${glyph(kw)}</div>`+
     `<div style="font-size:12px; line-height:1.5; letter-spacing:.06em">${pic}</div>`+
@@ -662,6 +673,186 @@ $('btnLab').onclick=()=>{
   if(lab.phase==='done'){ labStart(); return; }
 };
 $('btnRead').addEventListener('click',()=>{ if(lab) labStop(); });
+
+// ---- LEARN: teaching machine, from the ground up ----
+// Stage 1 trigrams → Stage 2 lines & change → Stage 3 the 64 (Wilhelm-spirit
+// paraphrases, not verbatim Wilhelm-Baynes, which is still in copyright).
+const TRI=[
+ {b:7,g:'☰',n:'QIAN',en:'HEAVEN',attr:'THE CREATIVE — STRONG',fam:'FATHER',img:'sky, pure yang, ceaseless motion'},
+ {b:0,g:'☷',n:'KUN',en:'EARTH',attr:'THE RECEPTIVE — YIELDING',fam:'MOTHER',img:'earth, pure yin, carries and completes'},
+ {b:1,g:'☳',n:'ZHEN',en:'THUNDER',attr:'THE AROUSING — MOVEMENT',fam:'ELDEST SON',img:'thunder, shock that awakens'},
+ {b:2,g:'☵',n:'KAN',en:'WATER',attr:'THE ABYSMAL — DANGER',fam:'MIDDLE SON',img:'water, ravine, the moon; flows through'},
+ {b:4,g:'☶',n:'GEN',en:'MOUNTAIN',attr:'KEEPING STILL — REST',fam:'YOUNGEST SON',img:'mountain, stillness, the door kept'},
+ {b:6,g:'☴',n:'XUN',en:'WIND',attr:'THE GENTLE — PENETRATING',fam:'ELDEST DAUGHTER',img:'wind and wood, gradual entering'},
+ {b:5,g:'☲',n:'LI',en:'FIRE',attr:'THE CLINGING — LIGHT',fam:'MIDDLE DAUGHTER',img:'fire, sun, clarity that depends on fuel'},
+ {b:3,g:'☱',n:'DUI',en:'LAKE',attr:'THE JOYOUS — PLEASURE',fam:'YOUNGEST DAUGHTER',img:'open lake, mist, the mouth; joy'}];
+const TRIG_BY_B={}; TRI.forEach(t=>TRIG_BY_B[t.b]=t);
+const MEAN=["",
+ "Pure yang. The primal creative power of heaven; success through strength that perseveres.",
+ "Pure yin. Devotion and receptivity; the earth that carries everything and completes what the creative begins.",
+ "Sprouting through hardship. Chaos before order; persevere, and seek helpers.",
+ "Inexperience seeking a teacher. The sincere question is answered once; do not ask three times.",
+ "Nourishment through patience. Strength that waits for the right moment without doubting it.",
+ "Opposition. Halt halfway; forcing a conflict to its end brings misfortune.",
+ "Organized strength. The army needs discipline, a just cause, and a seasoned leader.",
+ "Union around a center. Alliance formed while the time allows; the latecomer meets misfortune.",
+ "Small restraints. Gentle influence only; dense clouds, no rain yet.",
+ "Conduct. Treading on the tiger's tail — courtesy and care amid danger.",
+ "Heaven and earth commune. Prosperity; the small departs, the great approaches.",
+ "Heaven and earth apart. Stagnation; withdraw and keep your worth inward.",
+ "Fellowship in the open. Community that is universal, not factional, succeeds.",
+ "Great possession. Abundance held with humility and inner clarity endures.",
+ "Modesty. What is full is diminished, what is modest is increased; modesty carries all things through.",
+ "Enthusiasm. Energy aligned with the time; movement that meets no resistance.",
+ "Following. Adapt to the demands of the time; to lead, first learn to follow.",
+ "Decay invites repair. Deliberate work on what has been spoiled; three days before, three days after.",
+ "Approach. The great draws near; act while the time is favorable, for it passes.",
+ "Contemplation. The tower view — observing and being seen; teach by example, not force.",
+ "Biting through. The obstacle is removed by one decisive act; justice must bite.",
+ "Grace. Form and ornament clarify small matters; great matters are not decided by beauty.",
+ "Splitting apart. Erosion from below; the time to act has not come — hold still.",
+ "Return. The turning point; after the solstice the light comes back of itself.",
+ "Innocence. The unexpected; act from natural sincerity, not calculation, and all goes well.",
+ "The taming power of the great. Strength stored and held firm; character renewed daily.",
+ "Nourishment. Watch what goes into the mouth and what comes out of it.",
+ "The beam sags. Extraordinary times; extraordinary action, alone if necessary, without fear.",
+ "Danger repeated. Be like water: fill every hollow, keep flowing, stay true within.",
+ "Fire clings to what it burns. Clarity is dependent; care for what sustains your light.",
+ "Influence. Wooing; mutual attraction. Keep the heart still so it can receive.",
+ "Duration. The constant that persists through change; endure by renewing.",
+ "Retreat. Timely withdrawal is strength, not flight; know when to yield ground.",
+ "The power of the great. Great strength stays true only when it forgoes arrogance.",
+ "Progress. The sun rises over the earth; rapid, visible advance.",
+ "Darkening of the light. In dark times, veil your brightness and keep the inner light lit.",
+ "The family. Influence works from within outward; warmth and right roles order the world.",
+ "Opposition. Estrangement; in small matters, success. Unity remains beneath polarity.",
+ "Obstruction. The pass is blocked: pause, turn inward, seek allies, go around.",
+ "Deliverance. The storm breaks; forgive quickly and return to the ordinary.",
+ "Decrease. Simplicity below serves what is above; sincerity makes even little enough.",
+ "Increase. The time of gain — use it to do good boldly while it lasts.",
+ "Breakthrough. Announce the truth openly at court; resolution without weapons.",
+ "Coming to meet. The unexpected enters small — do not underestimate what arrives.",
+ "Gathering together. The mass assembles around a center; prepare for what gathering brings.",
+ "Pushing upward. Effortless steady growth, like wood rising within the earth.",
+ "Oppression. Exhausted, and words are not believed; stay cheerful in adversity and say little.",
+ "The well. The town may change, the well remains; the inexhaustible source, if the rope reaches.",
+ "Revolution. Molting; a change believed only on the day it is complete.",
+ "The cauldron. The vessel of transformation; nourish the able and the work succeeds.",
+ "Shock. Thunder frightens for a hundred miles — then teaches reverence and self-examination.",
+ "Keeping still. Stillness of the back; rest when it is time to rest, act when it is time to act.",
+ "Development. Gradual progress, like the tree on the mountain: slow, and therefore lasting.",
+ "The marrying maiden. Entering on subordinate terms; tact and patience within constraint.",
+ "Abundance. Fullness at noon — act now, for the sun begins to set at its height.",
+ "The wanderer. A stranger passing through: travel light, stay courteous, do not settle in.",
+ "The gentle. Wind following wind; small persistent influence penetrates everything.",
+ "The joyous. Lake beside lake; joy shared between friends, encouragement in practice.",
+ "Dispersion. Wind over water scatters what is rigid; dissolve what divides.",
+ "Limitation. Measure; galling limits fail, bearable limits endure.",
+ "Inner truth. Sincerity so complete it moves pigs and fishes; the empty heart hears.",
+ "Preponderance of the small. Small acts done exceptionally well; do not strive upward now.",
+ "After completion. Order is achieved — guard the details, for completion breeds disorder.",
+ "Before completion. The fox is nearly across; everything is in place, nothing is finished."];
+const learnEl=$('learn');
+let learnOpen=false;
+const go=(p,x)=>`data-go="${p}"${x!==undefined?` data-x="${x}"`:''}`;
+function learnHome(){
+  learnEl.innerHTML=`<h2>TEACHING MACHINE · FROM THE GROUND UP</h2>
+   <div style="line-height:2.4">
+   <span class="btn" ${go('tri',0)}>I · THE EIGHT TRIGRAMS</span><br>
+   <span class="btn" ${go('lines')}>II · LINES &amp; CHANGE</span><br>
+   <span class="btn" ${go('grid')}>III · THE SIXTY-FOUR</span><br>
+   <span class="btn" ${go('drill')}>IV · DRILL</span></div>
+   <div class="dim" style="margin-top:14px; font-size:11px; letter-spacing:.12em">
+   DEFINITIONS ARE COMPACT PARAPHRASES IN THE SPIRIT OF WILHELM ·
+   PRESS ✎ LEARN TO CLOSE</div>`;
+}
+function learnTri(i){
+  const t=TRI[i];
+  learnEl.innerHTML=`<h2>TRIGRAM ${i+1} / 8</h2>
+   <div class="big" style="font-size:54px">${t.g}</div>
+   <div>${t.n} · ${t.en}</div>
+   <div>${t.attr}</div>
+   <div class="dim">${t.fam} · ${t.img}</div>
+   <div class="dim" style="margin-top:10px">APPEARS IN GLYPHS AS THREE LINES, READ BOTTOM-UP.
+   EVERY HEXAGRAM IS TWO TRIGRAMS: AN INNER (LOWER) SITUATION UNDER AN OUTER (UPPER) EXPRESSION.</div>
+   <div style="margin-top:14px">
+   ${i>0?`<span class="btn" ${go('tri',i-1)}>◀ PREV</span>`:''}
+   ${i<7?`<span class="btn" ${go('tri',i+1)}>NEXT ▶</span>`:`<span class="btn" ${go('lines')}>ON TO LINES &amp; CHANGE ▶</span>`}
+   <span class="btn" ${go('home')}>MENU</span></div>`;
+}
+function learnLines(){
+  const lines=toss(); const kw=kwOf(lines);
+  const trans=kwOf(lines.map(v=>v===6?7:v===9?8:v));
+  const moving=lines.some(v=>v===6||v===9);
+  const lab=v=>v===6?'6 · OLD YIN ✕ → BECOMES YANG':v===7?'7 · YOUNG YANG (STABLE)':v===8?'8 · YOUNG YIN (STABLE)':'9 · OLD YANG ○ → BECOMES YIN';
+  learnEl.innerHTML=`<h2>II · LINES &amp; CHANGE</h2>
+   <div class="dim">THREE COINS: HEADS 3, TAILS 2. SUM 6/7/8/9 PER LINE, SIX LINES, BOTTOM FIRST.<br>
+   6 AND 9 ARE OLD LINES — FULLY RIPE, SO THEY FLIP. P(OLD)=25% PER LINE.<br>
+   OLD YIN ✕ (6) TURNS YANG; OLD YANG ○ (9) TURNS YIN. THE FLIPPED FIGURE IS WHERE THE STATE IS HEADING.</div>
+   <div style="margin-top:12px">LIVE THROW · ${glyph(kw)} ${kw}${moving?` → ${glyph(trans)} ${trans}`:''}</div>
+   <div style="font-size:12px; line-height:1.9">${lines.map((v,i)=>`LINE ${i+1} — ${lab(v)}`).join('<br>')}</div>
+   <div style="margin-top:12px"><span class="btn" ${go('lines')}>⟳ THROW AGAIN</span>
+   <span class="btn" ${go('grid')}>ON TO THE 64 ▶</span> <span class="btn" ${go('home')}>MENU</span></div>`;
+}
+function learnGrid(){
+  learnEl.innerHTML=`<h2>III · THE SIXTY-FOUR · KING WEN ORDER</h2>
+   <div class="hexgrid">${Array.from({length:64},(_,i)=>`<span ${go('hex',i+1)} title="${i+1}">${glyph(i+1)}</span>`).join('')}</div>
+   <div class="dim" style="margin-top:10px; font-size:11px">SELECT A HEXAGRAM</div>
+   <div style="margin-top:8px"><span class="btn" ${go('home')}>MENU</span></div>`;
+}
+function learnHex(kw){
+  const b=BITS_OF[kw], u=TRIG_BY_B[b>>3], l=TRIG_BY_B[b&7];
+  learnEl.innerHTML=`<h2>${kw} · ${NAMES[kw]}</h2>
+   <div style="display:flex; gap:26px; align-items:center; flex-wrap:wrap">
+   <div class="big" style="font-size:54px">${glyph(kw)}</div>
+   <div class="dim">${u.g} ${u.en} ABOVE<br>${l.g} ${l.en} BELOW</div></div>
+   <div style="max-width:52ch; line-height:1.9; margin-top:10px">${MEAN[kw]}</div>
+   <div class="dim" style="font-size:11px; margin-top:8px">OUTER: ${u.attr} · INNER: ${l.attr}</div>
+   <div style="margin-top:14px">
+   ${kw>1?`<span class="btn" ${go('hex',kw-1)}>◀ ${kw-1}</span>`:''}
+   ${kw<64?`<span class="btn" ${go('hex',kw+1)}>${kw+1} ▶</span>`:''}
+   <span class="btn" ${go('grid')}>GRID</span> <span class="btn" ${go('home')}>MENU</span></div>`;
+}
+function learnDrill(){
+  const kind=bit();  // 0: trigram, 1: hexagram
+  let answer, promptHtml, pool;
+  if(kind===0){ const t=TRI[(bit()<<2|bit()<<1|bit())&7]; answer=t.en;
+    promptHtml=`<div class="big" style="font-size:54px">${t.g}</div><div class="dim">NAME THIS TRIGRAM</div>`;
+    pool=TRI.map(x=>x.en);
+  } else { let k=0; do{k=(bit()<<5)|(bit()<<4)|(bit()<<3)|(bit()<<2)|(bit()<<1)|bit();}while(k>=64); k++;
+    answer=NAMES[k];
+    promptHtml=`<div class="big" style="font-size:54px">${glyph(k)}</div><div class="dim">NAME THIS HEXAGRAM (${k})</div>`;
+    pool=NAMES.slice(1);
+  }
+  const opts=new Set([answer]);
+  while(opts.size<4) opts.add(pool[(Math.random()*pool.length)|0]);
+  const shuffled=[...opts].sort(()=>Math.random()-.5);
+  learnEl.innerHTML=`<h2>IV · DRILL</h2>${promptHtml}
+   <div style="margin-top:12px; line-height:2.6">${shuffled.map(o=>
+     `<span class="btn" data-ans="${o===answer?1:0}">${o}</span>`).join('<br>')}</div>
+   <div id="drillR" style="margin-top:10px; min-height:24px"></div>
+   <div style="margin-top:6px"><span class="btn" ${go('drill')}>NEXT ▶</span> <span class="btn" ${go('home')}>MENU</span></div>`;
+}
+learnEl.addEventListener('click',e=>{
+  const a=e.target.closest('[data-ans]');
+  if(a){ const ok=a.dataset.ans==='1';
+    document.getElementById('drillR').innerHTML=ok?'<span style="color:#ffe9b0">CORRECT</span>':
+      `<span style="color:#ff6a3c">NO — MARKED IN CREAM</span>`;
+    if(!ok) learnEl.querySelectorAll('[data-ans="1"]').forEach(el=>el.style.color='#ffe9b0');
+    return; }
+  const g=e.target.closest('[data-go]'); if(!g) return;
+  const x=+g.dataset.x;
+  ({home:learnHome, lines:learnLines, grid:learnGrid, drill:learnDrill,
+    tri:()=>learnTri(x), hex:()=>learnHex(x)})[g.dataset.go]();
+});
+$('btnLearn').onclick=()=>{
+  learnOpen=!learnOpen;
+  if(learnOpen){ if(lab) labStop(); hold(); $('btnHold').classList.remove('down');
+    summaryEl.classList.remove('on'); learnHome(); learnEl.classList.add('on');
+    $('btnLearn').classList.add('down'); ticker.textContent='LEARN · TEACHING MACHINE';
+  } else { learnEl.classList.remove('on'); $('btnLearn').classList.remove('down');
+    ticker.textContent='STANDBY · PRESS CAST TO OPEN THE FIELD'; }
+};
 
 addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT') return;
