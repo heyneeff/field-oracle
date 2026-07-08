@@ -1,0 +1,1023 @@
+<title>FIELD ORACLE FO-64</title>
+<style>
+  :root{
+    --room:#171310;
+    --chassis:#cbc1a9; --chassis-hi:#e6ddc6; --chassis-lo:#6e6350; --chassis-deep:#4a4236;
+    --screen:#140f07; --phos:#ffb000; --phos-dim:#8a6420; --phos-faint:#4d3812;
+    --led-red:#d6452b; --led-red-off:#4d2a22; --led-amb:#ffb000; --led-amb-off:#4d3a17;
+    --ink:#3a342a;
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;
+  }
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--room);
+    background-image:radial-gradient(ellipse 90% 70% at 50% 20%, #241d16 0%, var(--room) 70%);
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); padding:28px 14px; box-sizing:border-box;
+  }
+  .console{
+    background:linear-gradient(175deg,var(--chassis-hi) 0%,var(--chassis) 30%,#b5aa90 100%);
+    border-radius:14px; padding:22px 24px 18px;
+    box-shadow:0 2px 0 var(--chassis-hi) inset, 0 -3px 0 var(--chassis-lo) inset,
+      0 24px 60px rgba(0,0,0,.65), 0 4px 12px rgba(0,0,0,.5);
+    width:min(880px,100%); box-sizing:border-box;
+  }
+  /* silkscreen legends */
+  .legend{
+    font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--ink);
+    text-shadow:0 1px 0 rgba(255,255,255,.5); font-weight:700;
+  }
+  .nameplate{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; gap:12px; flex-wrap:wrap}
+  .nameplate .brand{font-size:17px; letter-spacing:.34em; font-weight:800; color:var(--ink);
+    text-shadow:0 1px 0 rgba(255,255,255,.55)}
+  .nameplate .brand small{font-weight:400; letter-spacing:.22em; font-size:10px; color:#5d543f}
+  .stripes{flex:1; height:8px; min-width:60px;
+    background:repeating-linear-gradient(90deg,#b4482f 0 5px,transparent 5px 9px,#c07a2c 9px 14px,transparent 14px 18px,#8a8a45 18px 23px,transparent 23px 40px);
+    opacity:.85; border-radius:2px}
+  .deck{display:grid; grid-template-columns:1fr 236px; gap:18px}
+  @media(max-width:760px){ .deck{grid-template-columns:1fr} }
+
+  /* ---------- CRT ---------- */
+  .crt-bezel{
+    background:linear-gradient(180deg,#5d5342,#3f3830);
+    border-radius:12px; padding:12px;
+    box-shadow:0 1px 0 rgba(255,255,255,.25) inset, 0 -2px 6px rgba(0,0,0,.6) inset, 0 1px 0 var(--chassis-hi);
+  }
+  .crt{
+    position:relative; background:var(--screen); border-radius:8px; height:440px;
+    overflow:hidden;
+    box-shadow:0 0 40px rgba(0,0,0,.9) inset, 0 0 4px rgba(255,176,0,.12) inset;
+  }
+  .crt::after{ /* scanlines + vignette */
+    content:""; position:absolute; inset:0; pointer-events:none; border-radius:8px;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px),
+      radial-gradient(ellipse 120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,.55) 100%);
+  }
+  .crt::before{ /* glass glare */
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:2; border-radius:8px;
+    background:linear-gradient(115deg, rgba(255,255,255,.06) 0%, transparent 22%);
+  }
+  #rain{position:absolute; inset:0; width:100%; height:100%; border-radius:8px; display:none}
+  .crt.rain-view #rain{display:block}
+  .crt.rain-view .feed{display:none}
+  .feed{
+    position:absolute; inset:0; padding:14px 16px 34px; overflow:hidden;
+    display:flex; flex-direction:column; justify-content:flex-end;
+    color:var(--phos); font-size:14px; line-height:1.75;
+    text-shadow:0 0 6px rgba(255,176,0,.55);
+  }
+  .row{white-space:pre; display:flex; gap:0; align-items:baseline}
+  .row .g{font-size:17px; margin-right:8px}
+  .row .num{color:var(--phos); width:2.4ch; text-align:right; margin-right:10px}
+  .row .mv{letter-spacing:.14em; margin-right:10px; color:var(--phos-dim)}
+  .row .mv b{color:var(--phos); font-weight:400; text-shadow:0 0 8px rgba(255,176,0,.9)}
+  .row .arrow{color:var(--phos-dim); margin-right:10px; width:9ch}
+  .row .arrow b{color:var(--phos); font-weight:400}
+  .row .flag{color:var(--led-red); text-shadow:0 0 6px rgba(214,69,43,.7); font-size:11px; letter-spacing:.08em}
+  .row.weather{color:var(--phos-dim); font-size:11px; letter-spacing:.12em; text-shadow:none; margin:3px 0}
+  .row.fresh{animation:strike .35s steps(2) 1}
+  @keyframes strike{from{color:#fff; text-shadow:0 0 14px rgba(255,220,140,.9)} }
+  .ticker{
+    position:absolute; left:0; right:0; bottom:0; z-index:1;
+    background:rgba(20,15,7,.92); border-top:1px solid var(--phos-faint);
+    color:var(--phos-dim); font-size:11px; letter-spacing:.14em; padding:5px 16px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .ticker b{color:var(--phos); font-weight:400}
+  /* summary screen */
+  .summary{
+    position:absolute; inset:0; z-index:1; background:var(--screen);
+    color:var(--phos); padding:26px 30px; font-size:14px; line-height:2;
+    text-shadow:0 0 6px rgba(255,176,0,.5); display:none; overflow:auto; box-sizing:border-box;
+  }
+  .summary.on{display:block}
+  /* lab screen */
+  .lab{
+    position:absolute; inset:0; z-index:1; background:var(--screen); display:none;
+    color:var(--phos); text-shadow:0 0 6px rgba(255,176,0,.5);
+    flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    text-align:center; padding:24px; box-sizing:border-box; overflow:auto;
+  }
+  .lab.on{display:flex}
+  .lab .cue{font-size:34px; letter-spacing:.3em}
+  .lab .cue.intend{color:#ffe9b0; text-shadow:0 0 18px rgba(255,208,112,.8)}
+  .lab .cue.rest{color:var(--phos-dim); text-shadow:none}
+  .lab .target-g{font-size:64px; line-height:1.1}
+  .lab .fine{font-size:11px; letter-spacing:.14em; color:var(--phos-dim); line-height:1.9}
+  .lab a{color:var(--phos)}
+  .lab table{border-collapse:collapse; font-variant-numeric:tabular-nums; font-size:13px}
+  .lab td,.lab th{padding:3px 14px; font-weight:400}
+  .lab th{color:var(--phos-dim); letter-spacing:.14em; font-size:10px}
+  .summary h2{font-size:13px; letter-spacing:.3em; font-weight:400; border-bottom:1px solid var(--phos-faint);
+    padding-bottom:8px; margin:0 0 14px}
+  .summary .dim{color:var(--phos-dim)}
+  .summary .big{font-size:26px; line-height:1.3}
+  .summary table{border-collapse:collapse; font-variant-numeric:tabular-nums}
+  .summary td{padding:2px 18px 2px 0}
+  .summary .btn{cursor:pointer; border:1px solid var(--phos-faint); border-radius:3px;
+    padding:2px 10px; display:inline-block; margin:2px 4px 2px 0; user-select:none}
+  .summary .btn:hover{border-color:var(--phos-dim); color:#ffe9b0}
+  .hexgrid{display:grid; grid-template-columns:repeat(8,1fr); gap:2px; max-width:420px}
+  .hexgrid span{cursor:pointer; font-size:24px; text-align:center; padding:2px; border-radius:3px}
+  .hexgrid span:hover{background:rgba(255,176,0,.14)}
+
+  /* ---------- right rail ---------- */
+  .rail{display:flex; flex-direction:column; gap:14px}
+  .meter-block{
+    background:linear-gradient(180deg,#dcd3ba,#c3b89e); border-radius:8px; padding:10px 10px 8px;
+    box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 -1px 0 rgba(0,0,0,.15) inset, 0 1px 3px rgba(0,0,0,.25);
+  }
+  .meter-face{
+    background:#f2ecd8; border-radius:5px; height:74px; position:relative; overflow:hidden;
+    box-shadow:0 2px 5px rgba(0,0,0,.35) inset; margin-bottom:6px;
+  }
+  .meter-face canvas{position:absolute; inset:0; width:100%; height:100%}
+  .meter-cap{display:flex; justify-content:space-between; align-items:baseline}
+  .meter-cap .val{font-size:11px; color:var(--ink); font-variant-numeric:tabular-nums}
+  /* now playing */
+  .now{
+    background:var(--screen); border-radius:6px; padding:10px 12px; text-align:center;
+    box-shadow:0 0 14px rgba(0,0,0,.8) inset; color:var(--phos);
+    text-shadow:0 0 8px rgba(255,176,0,.6);
+  }
+  .now .glyph{font-size:44px; line-height:1.1}
+  .now .name{font-size:11px; letter-spacing:.18em; color:var(--phos-dim); margin-top:2px; min-height:14px}
+  /* LEDs */
+  .leds{display:grid; grid-template-columns:1fr 1fr; gap:8px 10px}
+  .led{display:flex; align-items:center; gap:7px}
+  .led i{
+    width:11px; height:11px; border-radius:50%; flex:none;
+    background:var(--led-red-off); box-shadow:0 1px 1px rgba(0,0,0,.4) inset;
+    transition:background .12s, box-shadow .12s;
+  }
+  .led.amber i{background:var(--led-amb-off)}
+  .led.on i{background:var(--led-red); box-shadow:0 0 8px rgba(214,69,43,.9), 0 0 2px #fff inset}
+  .led.amber.on i{background:var(--led-amb); box-shadow:0 0 8px rgba(255,176,0,.9), 0 0 2px #fff inset}
+  .led span{font-size:9px; letter-spacing:.16em; color:var(--ink); font-weight:700; text-shadow:0 1px 0 rgba(255,255,255,.5)}
+  /* counter */
+  .odometer{
+    background:var(--screen); color:var(--phos); border-radius:5px; text-align:right;
+    font-size:18px; padding:6px 12px; letter-spacing:.2em; font-variant-numeric:tabular-nums;
+    box-shadow:0 0 10px rgba(0,0,0,.8) inset; text-shadow:0 0 7px rgba(255,176,0,.6);
+  }
+
+  /* ---------- transport ---------- */
+  .transport{
+    display:flex; align-items:center; gap:14px; margin-top:18px; flex-wrap:wrap;
+    border-top:2px solid rgba(0,0,0,.12); padding-top:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.45);
+  }
+  .keybank{display:flex; gap:2px}
+  button.key{
+    font-family:var(--mono); font-size:10px; letter-spacing:.14em; font-weight:700;
+    color:var(--ink); text-shadow:0 1px 0 rgba(255,255,255,.5);
+    background:linear-gradient(180deg,#e8dfc8,#c8bda2);
+    border:1px solid #8f8468; border-radius:3px; padding:12px 16px 10px; cursor:pointer;
+    box-shadow:0 3px 0 #8f8468, 0 1px 0 rgba(255,255,255,.7) inset;
+    transition:transform .05s, box-shadow .05s;
+  }
+  button.key:active, button.key.down{transform:translateY(3px); box-shadow:0 0 0 #8f8468, 0 1px 0 rgba(255,255,255,.5) inset}
+  button.key:focus-visible{outline:2px solid var(--led-red); outline-offset:2px}
+  button.key.rec{color:#7d2314}
+  .speed{display:flex; align-items:center; gap:8px}
+  .speed input[type=range]{width:110px; accent-color:var(--led-red)}
+  .qwrap{flex:1; min-width:160px; display:flex; align-items:center; gap:8px}
+  .qwrap input{
+    flex:1; font-family:var(--mono); font-size:12px; color:var(--phos);
+    background:var(--screen); border:none; border-radius:4px; padding:9px 12px;
+    box-shadow:0 0 8px rgba(0,0,0,.7) inset; text-shadow:0 0 5px rgba(255,176,0,.5);
+  }
+  .qwrap input::placeholder{color:var(--phos-faint)}
+  .qwrap input:focus{outline:1px solid var(--phos-dim)}
+  .footnote{margin-top:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
+  .footnote .legend{font-weight:400; letter-spacing:.14em; color:#6b6149}
+  @media (prefers-reduced-motion:reduce){ .row.fresh{animation:none} }
+</style>
+
+<div class="console" role="application" aria-label="Field Oracle continuous I Ching console">
+  <div class="nameplate">
+    <div class="brand">FIELD ORACLE <small>MODEL FO-64 · CONTINUOUS CAST</small></div>
+    <div class="stripes"></div>
+  </div>
+
+  <div class="deck">
+    <div class="crt-bezel">
+      <div class="crt" id="crt">
+        <canvas id="rain" aria-hidden="true"></canvas>
+        <div class="feed" id="feed" aria-live="off"></div>
+        <div class="summary" id="summary"></div>
+        <div class="lab" id="lab"></div>
+        <div class="summary" id="learn"></div>
+        <div class="ticker" id="ticker">STANDBY · PRESS CAST TO OPEN THE FIELD</div>
+      </div>
+    </div>
+
+    <div class="rail">
+      <div class="now" id="now">
+        <div class="glyph" id="nowGlyph">䷀</div>
+        <div class="name" id="nowName">READY</div>
+      </div>
+
+      <div class="meter-block">
+        <div class="meter-face"><canvas id="tiltMeter"></canvas></div>
+        <div class="meter-cap"><span class="legend">Tilt · yin ⟷ yang</span><span class="val" id="tiltVal">50%</span></div>
+      </div>
+      <div class="meter-block">
+        <div class="meter-face"><canvas id="churnMeter"></canvas></div>
+        <div class="meter-cap"><span class="legend">Churn · moving</span><span class="val" id="churnVal">25%</span></div>
+      </div>
+
+      <div class="leds">
+        <div class="led" id="ledRecur"><i></i><span>RECUR</span></div>
+        <div class="led" id="ledHot"><i></i><span>HOT LINE</span></div>
+        <div class="led" id="ledRun"><i></i><span>TRI RUN</span></div>
+        <div class="led amber" id="ledCast"><i></i><span>CAST</span></div>
+      </div>
+
+      <div>
+        <div class="legend" style="margin-bottom:4px">Cast counter</div>
+        <div class="odometer" id="counter">000000</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="transport">
+    <div class="keybank">
+      <button class="key" id="btnOne">① ONE</button>
+      <button class="key" id="btnKilo">▦ 1000</button>
+      <button class="key rec" id="btnCast">▶ CAST</button>
+      <button class="key" id="btnHold">‖ HOLD</button>
+      <button class="key" id="btnRead">■ READ FIELD</button>
+      <button class="key" id="btnClear">⏏ CLEAR</button>
+      <button class="key" id="btnRain">⋮ RAIN</button>
+      <button class="key" id="btnLab">⚗ LAB</button>
+      <button class="key" id="btnLearn">✎ LEARN</button>
+    </div>
+    <div class="speed">
+      <span class="legend">Speed</span>
+      <input type="range" id="speed" min="0" max="100" value="42" aria-label="cast speed">
+    </div>
+    <div class="qwrap">
+      <span class="legend">Question</span>
+      <input id="question" type="text" placeholder="anchor the field…" spellcheck="false">
+    </div>
+  </div>
+  <div class="footnote">
+    <span class="legend">Three-coin method · King Wen sequence · entropy: OS (crypto.getRandomValues)</span>
+  </div>
+</div>
+
+<script>
+(() => {
+const KING_WEN = [
+   2,24, 7,19,15,36,46,11, 16,51,40,54,62,55,32,34,
+   8, 3,29,60,39,63,48, 5, 45,17,47,58,31,49,28,43,
+  23,27, 4,41,52,22,18,26, 35,21,64,38,56,30,50,14,
+  20,42,59,61,53,37,57,44, 12,25, 6,10,33,13, 9, 1];
+const BITS_OF = {}; KING_WEN.forEach((kw,bits)=>BITS_OF[kw]=bits);
+const glyph = kw => String.fromCodePoint(0x4DC0 + kw - 1);
+const TRIGRAMS = {7:"HEAVEN",3:"LAKE",5:"FIRE",1:"THUNDER",6:"WIND",2:"WATER",4:"MOUNTAIN",0:"EARTH"};
+const NAMES = ["","THE CREATIVE","THE RECEPTIVE","DIFFICULTY AT THE BEGINNING","YOUTHFUL FOLLY","WAITING","CONFLICT","THE ARMY","HOLDING TOGETHER","THE TAMING POWER OF THE SMALL","TREADING","PEACE","STANDSTILL","FELLOWSHIP","POSSESSION IN GREAT MEASURE","MODESTY","ENTHUSIASM","FOLLOWING","WORK ON WHAT HAS BEEN SPOILED","APPROACH","CONTEMPLATION","BITING THROUGH","GRACE","SPLITTING APART","RETURN","INNOCENCE","THE TAMING POWER OF THE GREAT","THE CORNERS OF THE MOUTH","PREPONDERANCE OF THE GREAT","THE ABYSMAL","THE CLINGING","INFLUENCE","DURATION","RETREAT","THE POWER OF THE GREAT","PROGRESS","DARKENING OF THE LIGHT","THE FAMILY","OPPOSITION","OBSTRUCTION","DELIVERANCE","DECREASE","INCREASE","BREAKTHROUGH","COMING TO MEET","GATHERING TOGETHER","PUSHING UPWARD","OPPRESSION","THE WELL","REVOLUTION","THE CAULDRON","THE AROUSING","KEEPING STILL","DEVELOPMENT","THE MARRYING MAIDEN","ABUNDANCE","THE WANDERER","THE GENTLE","THE JOYOUS","DISPERSION","LIMITATION","INNER TRUTH","PREPONDERANCE OF THE SMALL","AFTER COMPLETION","BEFORE COMPLETION"];
+
+const $ = id => document.getElementById(id);
+const feed=$('feed'), ticker=$('ticker'), summaryEl=$('summary');
+
+// ---- state ----
+let running=false, timer=null, n=0;
+let emaYang=.5, emaMove=.25, needleTilt=.5, needleChurn=.25;
+let win=[], lineRun=[0,0,0,0,0,0], upperRun=0, lastUpper=null;
+let allPrimary={}, allTrans={}, hotTotals=[0,0,0,0,0,0];
+const WINDOW=32, WEATHER=16, MAXROWS=200;
+
+// entropy: OS pool via crypto.getRandomValues — a physical source (hardware-
+// noise seeded), unlike Math.random. A QRNG can replace bit() when served.
+const ent={buf:new Uint8Array(4096), i:4096*8};
+function bit(){
+  if(ent.i>=ent.buf.length*8){ crypto.getRandomValues(ent.buf); ent.i=0; }
+  const b=(ent.buf[ent.i>>3]>>(ent.i&7))&1; ent.i++; return b;
+}
+function toss(){ let l=[]; for(let i=0;i<6;i++){ let s=0; for(let c=0;c<3;c++) s+=2+bit(); l.push(s);} return l; }
+const kwOf = lines => KING_WEN[lines.reduce((b,v,i)=>b|((v%2)<<i),0)];
+
+function cast(){
+  const lines=toss();
+  const kw=kwOf(lines);
+  const moving=lines.map((v,i)=>v===6||v===9?i:-1).filter(i=>i>=0);
+  const trans=kwOf(lines.map(v=>v===6?7:v===9?8:v));
+  const yang=lines.filter(v=>v%2).length/6;
+  const upper=BITS_OF[kw]>>3;
+
+  n++; emaYang+=.1*(yang-emaYang); emaMove+=.1*(moving.length/6-emaMove);
+  allPrimary[kw]=(allPrimary[kw]||0)+1; allTrans[trans]=(allTrans[trans]||0)+1;
+  for(let i=0;i<6;i++){ lineRun[i]=moving.includes(i)?lineRun[i]+1:0; }
+  moving.forEach(i=>hotTotals[i]++);
+  upperRun = upper===lastUpper ? upperRun+1 : 1; lastUpper=upper;
+
+  // flags
+  const recur=win.filter(k=>k===kw).length;
+  const hot=lineRun.map((r,i)=>r>=3?i+1:0).filter(Boolean);
+  const run=upperRun>=4;
+  win.push(kw); if(win.length>WINDOW) win.shift();
+  const flags=[];
+  if(recur>=1) flags.push(`RECUR ×${recur+1}`);
+  if(hot.length) flags.push(`HOT L${hot.join(',')}`);
+  if(run) flags.push(`${TRIGRAMS[upper]} ×${upperRun}`);
+
+  led('ledRecur',recur>=1); led('ledHot',hot.length>0); led('ledRun',run);
+  gridPush(kw);
+
+  // row
+  const row=document.createElement('div'); row.className='row fresh';
+  const mv=lines.map((v,i)=>moving.includes(i)?'<b>●</b>':'·').join('');
+  const arrow = moving.length ? `→ <b>${glyph(trans)} ${String(trans).padStart(2)}</b>` : '&nbsp;';
+  row.innerHTML=`<span class="num">${kw}</span>`+
+    `<span class="mv">${mv}</span><span class="arrow">${moving.length?`→ <b>${String(trans).padStart(2)}</b>`:'&nbsp;'}</span>`+
+    (flags.length?`<span class="flag">⚑ ${flags.join(' · ')}</span>`:'');
+  feed.appendChild(row);
+
+  if(n%WEATHER===0){
+    const w=document.createElement('div'); w.className='row weather';
+    const counts={}; win.forEach(k=>counts[k]=(counts[k]||0)+1);
+    const [mk,mc]=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+    const churnW = emaMove>.30?'HOT':emaMove<.20?'COLD':'STEADY';
+    w.textContent=`── WEATHER @${n} · TILT ${emaYang>.5?'YANG':'YIN'} ${Math.abs(emaYang-.5)*200|0}% · CHURN ${churnW} ${Math.round(emaMove*100)}% · MODE ${glyph(+mk)} ${mk}×${mc} ──`;
+    feed.appendChild(w);
+  }
+  while(feed.children.length>MAXROWS) feed.removeChild(feed.firstChild);
+
+  $('nowGlyph').textContent=glyph(kw);
+  $('nowName').textContent=`${kw} · ${NAMES[kw]}`;
+  $('counter').textContent=String(n).padStart(6,'0');
+  $('tiltVal').textContent=Math.round(emaYang*100)+'%';
+  $('churnVal').textContent=Math.round(emaMove*100)+'%';
+  ticker.innerHTML=`CASTING · <b>${glyph(kw)} ${kw} ${NAMES[kw]}</b>`+
+    (moving.length?` → <b>${trans} ${NAMES[trans]}</b> · LINES ${moving.map(i=>i+1).join(' ')}`:' · NO MOVING LINES');
+}
+
+function led(id,on){ $(id).classList.toggle('on',!!on); }
+
+// ---- meters (canvas, drawn as analog VU faces) ----
+function setupMeter(cv){ const r=devicePixelRatio||1; const w=cv.clientWidth,h=cv.clientHeight;
+  cv.width=w*r; cv.height=h*r; const g=cv.getContext('2d'); g.scale(r,r); return {g,w,h}; }
+function drawMeter(cv,frac,lo,hi,center,labels){
+  const {g,w,h}=setupMeter(cv);
+  g.clearRect(0,0,w,h);
+  const cx=w/2, cy=h*1.55, R=h*1.28;
+  const a0=-Math.PI*.78, a1=-Math.PI*.22;
+  // arc + ticks
+  g.strokeStyle='#8a7f68'; g.lineWidth=1;
+  g.beginPath(); g.arc(cx,cy,R,a0,a1); g.stroke();
+  g.fillStyle='#6b6149'; g.font='7px '+getComputedStyle(document.body).fontFamily;
+  g.textAlign='center';
+  for(let i=0;i<=10;i++){
+    const a=a0+(a1-a0)*i/10, big=i%5===0;
+    const r1=R, r2=R-(big?7:4);
+    g.beginPath(); g.moveTo(cx+Math.cos(a)*r1, cy+Math.sin(a)*r1);
+    g.lineTo(cx+Math.cos(a)*r2, cy+Math.sin(a)*r2); g.stroke();
+    if(big && labels[i/5]!==undefined)
+      g.fillText(labels[i/5], cx+Math.cos(a)*(R-14), cy+Math.sin(a)*(R-14)+2);
+  }
+  // red zones at both ends (tension zones)
+  g.strokeStyle='rgba(180,72,47,.85)'; g.lineWidth=3;
+  g.beginPath(); g.arc(cx,cy,R+3,a0,a0+(a1-a0)*.14); g.stroke();
+  g.beginPath(); g.arc(cx,cy,R+3,a1-(a1-a0)*.14,a1); g.stroke();
+  // center pip
+  if(center!==null){ const ac=a0+(a1-a0)*(center-lo)/(hi-lo);
+    g.strokeStyle='#6b6149'; g.lineWidth=1.5;
+    g.beginPath(); g.moveTo(cx+Math.cos(ac)*(R+2), cy+Math.sin(ac)*(R+2));
+    g.lineTo(cx+Math.cos(ac)*(R+8), cy+Math.sin(ac)*(R+8)); g.stroke(); }
+  // needle
+  const t=Math.min(Math.max((frac-lo)/(hi-lo),0),1);
+  const a=a0+(a1-a0)*t;
+  g.strokeStyle='#2b2013'; g.lineWidth=2; g.lineCap='round';
+  g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+Math.cos(a)*(R-4), cy+Math.sin(a)*(R-4)); g.stroke();
+  g.fillStyle='#2b2013'; g.beginPath(); g.arc(cx,cy-h*.5,3.5,0,7); // hub hidden below face edge
+}
+function meters(){
+  needleTilt += (emaYang-needleTilt)*.15;
+  needleChurn += (emaMove-needleChurn)*.15;
+  drawMeter($('tiltMeter'), needleTilt, .2,.8,.5, ['YIN','·','YANG']);
+  drawMeter($('churnMeter'), needleChurn, 0,.5,.25, ['0','25','50']);
+  requestAnimationFrame(meters);
+}
+requestAnimationFrame(meters);
+addEventListener('resize',()=>{}); // canvas re-measured every frame via clientWidth
+
+// ---- hexagram rain: a grid of pure glyphs. Each cast fills the top row
+// left-to-right; a full row pushes the field down. No trails, no numbers.
+// Cells re-color live from window coherence: when a hexagram recurs beyond
+// chance, every instance of it on screen lights up.
+let rainView=false, gridRows=[], curRow=[];
+const rainCv=$('rain'), rg=rainCv.getContext('2d');
+const CELL_W=42, CELL_H=46, PAD=16;
+function sizeRain(){
+  const r=devicePixelRatio||1, w=rainCv.clientWidth, h=rainCv.clientHeight;
+  if(rainCv.width!==w*r||rainCv.height!==h*r){
+    rainCv.width=w*r; rainCv.height=h*r; rg.setTransform(r,0,0,r,0,0);
+  }
+  return {w,h};
+}
+function gridCols(){ return Math.max(1,Math.floor((rainCv.clientWidth-PAD*2)/CELL_W)); }
+function gridPush(kw){
+  curRow.push(kw);
+  if(curRow.length>=gridCols()){
+    gridRows.unshift(curRow); curRow=[];
+    if(gridRows.length>30) gridRows.pop();
+  }
+  if(rainView) drawGrid();
+}
+function drawGrid(){
+  const {w,h}=sizeRain();
+  rg.fillStyle='#140f07'; rg.fillRect(0,0,w,h);
+  rg.textAlign='center'; rg.textBaseline='middle';
+  rg.font='30px '+getComputedStyle(document.body).fontFamily;
+  // coherence per hexagram from the rolling window (baseline = win.length/64)
+  const counts={}; win.forEach(k=>counts[k]=(counts[k]||0)+1);
+  const rows=[curRow,...gridRows];
+  const maxRows=Math.ceil((h-40)/CELL_H);
+  for(let r=0;r<rows.length&&r<maxRows;r++){
+    const y=PAD+18+r*CELL_H;
+    for(let c=0;c<rows[r].length;c++){
+      const kw=rows[r][c], x=PAD+c*CELL_W+CELL_W/2;
+      const hits=counts[kw]||0;
+      if(hits>=4){        // strong coherence — the pattern burning through
+        rg.fillStyle='#ff6a3c'; rg.shadowColor='#ff5030'; rg.shadowBlur=14;
+      } else if(hits>=3){ // coherence emerging
+        rg.fillStyle='#ffe9b0'; rg.shadowColor='#ffd070'; rg.shadowBlur=10;
+      } else {            // background field
+        rg.fillStyle='rgba(255,176,0,0.5)'; rg.shadowBlur=0;
+      }
+      rg.fillText(String.fromCodePoint(0x4DC0+kw-1), x, y);
+    }
+    rg.shadowBlur=0;
+  }
+  rg.textBaseline='alphabetic';
+}
+function setRainView(on){
+  rainView=on;
+  $('crt').classList.toggle('rain-view',on);
+  $('btnRain').classList.toggle('down',on);
+  if(on) drawGrid();
+}
+$('btnRain').onclick=()=>setRainView(!rainView);
+addEventListener('resize',()=>{ if(rainView) drawGrid(); });
+
+// ---- transport ----
+function interval(){ const v=+$('speed').value; return 1500 - v*14.5; } // 1500ms .. 50ms
+function loop(){ if(!running) return; cast(); timer=setTimeout(loop, interval()); }
+function start(){ if(running) return; running=true; summaryEl.classList.remove('on');
+  const le=document.getElementById('learn'); le.classList.remove('on');
+  $('btnLearn')&&$('btnLearn').classList.remove('down'); if(typeof learnOpen!=='undefined') learnOpen=false;
+  led('ledCast',true); $('btnCast').classList.add('down'); $('btnHold').classList.remove('down'); loop(); }
+function hold(){ running=false; clearTimeout(timer); led('ledCast',false);
+  $('btnCast').classList.remove('down'); $('btnHold').classList.add('down');
+  ticker.innerHTML='HOLD · FIELD PAUSED AT CAST '+n; }
+$('btnCast').onclick=start;
+$('btnHold').onclick=hold;
+$('btnClear').onclick=()=>{ hold(); $('btnHold').classList.remove('down');
+  n=0; emaYang=.5; emaMove=.25; win=[]; lineRun=[0,0,0,0,0,0]; upperRun=0; lastUpper=null;
+  allPrimary={}; allTrans={}; hotTotals=[0,0,0,0,0,0];
+  gridRows=[]; curRow=[]; if(rainView) drawGrid();
+  feed.innerHTML=''; summaryEl.classList.remove('on');
+  $('counter').textContent='000000'; $('tiltVal').textContent='50%'; $('churnVal').textContent='25%';
+  $('nowGlyph').textContent='䷀'; $('nowName').textContent='READY';
+  ['ledRecur','ledHot','ledRun'].forEach(i=>led(i,false));
+  ticker.textContent='STANDBY · PRESS CAST TO OPEN THE FIELD'; };
+$('btnRead').onclick=()=>{
+  if(!n){ ticker.textContent='NO FIELD YET · PRESS CAST FIRST'; return; }
+  hold(); $('btnHold').classList.remove('down');
+  const base=n/64;
+  const top=Object.entries(allPrimary).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const [tk,tc]=Object.entries(allTrans).sort((a,b)=>b[1]-a[1])[0];
+  const hotLine=hotTotals.indexOf(Math.max(...hotTotals));
+  const q=$('question').value.trim();
+  summaryEl.innerHTML=
+    `<h2>FIELD SUMMARY · ${n} CASTS${q?' · “'+q.replace(/</g,'&lt;').toUpperCase()+'”':''}</h2>`+
+    `<div class="big">${top.map(([k])=>glyph(+k)).join(' ')}</div>`+
+    `<table>${top.map(([k,c])=>`<tr><td>PRIMARY ${glyph(+k)} ${k} ${NAMES[k]}</td><td>×${c}</td><td class="dim">${(c/base).toFixed(1)}× BASELINE</td></tr>`).join('')}`+
+    `<tr><td>FLOWING → ${glyph(+tk)} ${tk} ${NAMES[tk]}</td><td>×${tc}</td><td class="dim">${(tc/base).toFixed(1)}× BASELINE</td></tr></table>`+
+    `<div style="margin-top:12px">TILT ${emaYang>.5?'YANG':'YIN'} ${Math.abs(emaYang-.5)*200|0}%`+
+    ` <span class="dim">·</span> CHURN ${Math.round(emaMove*100)}% <span class="dim">(BASELINE 25%)</span></div>`+
+    `<div>HOTTEST THREAD · LINE ${hotLine+1} MOVED ${hotTotals[hotLine]}× <span class="dim">(${Math.round(hotTotals[hotLine]/n*100)}%, BASELINE 25%)</span></div>`+
+    `<div class="dim" style="margin-top:14px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RESUME · CLEAR TO ERASE THE TAPE</div>`;
+  summaryEl.classList.add('on');
+  ticker.textContent='READ · FIELD SUMMARY ON SCREEN';
+};
+// ---- single throw & 1000-cast field reading (pure: don't touch cascade state) ----
+const TRIGRAM_ORDER=[7,3,5,1,6,2,4,0];
+const esc=s=>s.replace(/</g,'&lt;');
+function showScreen(html){ if(lab) labStop(); hold(); $('btnHold').classList.remove('down');
+  summaryEl.innerHTML=html; summaryEl.classList.add('on'); }
+$('btnOne').onclick=()=>{
+  const q=$('question').value.trim();
+  const lines=toss(), kw=kwOf(lines);
+  const moving=lines.map((v,i)=>v===6||v===9?i+1:0).filter(Boolean);
+  const trans=kwOf(lines.map(v=>v===6?7:v===9?8:v));
+  const bits=BITS_OF[kw], lower=TRIGRAMS[bits&7], upper=TRIGRAMS[bits>>3];
+  // traditional marks: 6 = old yin ✕ (→ yang), 9 = old yang ○ (→ yin)
+  const pic=lines.map(v=>{
+    const yang=v%2;
+    const mark=v===6?' <span style="color:#ff6a3c">✕</span>':v===9?' <span style="color:#ff6a3c">○</span>':'';
+    return `<div>${yang?'━━━━━━━':'━━━&nbsp;━━━'}${mark}</div>`;
+  }).reverse().join('');
+  const changes=lines.map((v,i)=>v===6?`LINE ${i+1} · OLD YIN ✕ → YANG`:v===9?`LINE ${i+1} · OLD YANG ○ → YIN`:null)
+    .filter(Boolean);
+  const decimal = moving.length ? `${kw}.${moving.join('.')} > ${trans}` : `${kw}`;
+  showScreen(
+    `<h2>SINGLE CAST${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
+    `<div class="big" style="margin-bottom:4px">${decimal}</div>`+
+    `<div class="big" style="margin-bottom:12px">${glyph(kw)}${moving.length?` <span class="dim">→</span> ${glyph(trans)}`:''}</div>`+
+    `<div style="display:flex; gap:34px; align-items:center; flex-wrap:wrap">`+
+    `<div class="big" style="font-size:56px">${glyph(kw)}</div>`+
+    `<div style="font-size:12px; line-height:1.5; letter-spacing:.06em">${pic}</div>`+
+    `<div><div>${kw} · ${NAMES[kw]}</div>`+
+    `<div class="dim">${upper} OVER ${lower}</div></div></div>`+
+    `<div style="max-width:56ch; line-height:1.9; margin-top:12px"><span class="dim" style="font-size:11px">JUDGMENT · </span>${HEXT[kw].j}</div>`+
+    (moving.length?
+      `<div style="margin-top:14px">${changes.join('<br>')}</div>`+
+      `<div style="max-width:60ch; font-size:12px; line-height:2; margin-top:8px">${moving.map(m=>
+        `<span class="dim">${kw}.${m}</span> ${HEXT[kw].l[m-1]}`).join('<br>')}</div>`+
+      `<div style="margin-top:10px">BECOMING → ${glyph(trans)} ${trans} · ${NAMES[trans]} `+
+      `<span class="dim">(${TRIGRAMS[BITS_OF[trans]>>3]} OVER ${TRIGRAMS[BITS_OF[trans]&7]})</span></div>`+
+      `<div style="max-width:56ch; line-height:1.9; font-size:12px" class="dim">${MEAN[trans]}</div>`:
+      `<div style="margin-top:14px" class="dim">NO MOVING LINES · THE STATE IS AT REST</div>`)+
+    `<div class="dim" style="margin-top:16px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN TO THE STREAM</div>`);
+  ticker.innerHTML=`ONE · <b>${glyph(kw)} ${kw} ${NAMES[kw]}</b>${moving.length?` → <b>${trans}</b>`:''}`;
+};
+let kilo=null; // last field reading, for grid/reading toggle
+$('btnKilo').onclick=()=>{
+  const q=$('question').value.trim(), N=1000, base=N/64;
+  const prim={}, trn={}, up={}, lo={}, hotL=[0,0,0,0,0,0], mvDist=[0,0,0,0,0,0,0];
+  let yangTotal=0; const castLog=[];
+  for(let i=0;i<N;i++){
+    const lines=toss(), kw=kwOf(lines);
+    const mv=lines.filter(v=>v===6||v===9).length;
+    castLog.push(kw);
+    prim[kw]=(prim[kw]||0)+1;
+    const tkw=kwOf(lines.map(v=>v===6?7:v===9?8:v));
+    trn[tkw]=(trn[tkw]||0)+1;
+    const b=BITS_OF[kw]; up[b>>3]=(up[b>>3]||0)+1; lo[b&7]=(lo[b&7]||0)+1;
+    lines.forEach((v,j)=>{ if(v%2) yangTotal++; if(v===6||v===9) hotL[j]++; });
+    mvDist[mv]++;
+  }
+  const sorted=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]);
+  const topP=sorted(prim).slice(0,3), topT=sorted(trn).slice(0,2);
+  kilo={casts:castLog, top:topP.map(([k])=>+k), counts:prim, q};
+  const H=Object.values(prim).reduce((s,c)=>s+(c/N)**2,0);
+  const coh=(H-1/64)/(1-1/64);
+  const triRow=o=>TRIGRAM_ORDER.map(t=>`<td>${TRIGRAMS[t].slice(0,4)}</td><td class="dim">${Math.round((o[t]||0)/N*100)}%</td>`).join('');
+  const yangPct=yangTotal/(N*6)*100;
+  const lineCells=hotL.map((c,i)=>{
+    const pct=c/N*100, hotCls=Math.abs(pct-25)>=2.8; // ~2σ at n=1000
+    return `<td${hotCls?' style="color:#ff6a3c"':''}>L${i+1}</td><td class="${hotCls?'':'dim'}">${pct.toFixed(1)}%</td>`;
+  }).join('');
+  kilo.readingHtml=
+    `<h2>FIELD READING · ${N} CASTS${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
+    `<div style="margin-bottom:8px"><span class="btn" data-kv="grid">▦ VIEW THE FIELD GRID</span></div>`+
+    `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
+    `<table>${topP.map(([k,c])=>`<tr><td>${glyph(+k)} ${k} ${NAMES[k]}</td><td>×${c}</td><td class="dim">${(c/base).toFixed(1)}× BASELINE</td></tr>`).join('')}</table>`+
+    `<div style="margin-top:10px">FLOWING → ${topT.map(([k,c])=>`${glyph(+k)} ${k} ×${c}`).join(' · ')}</div>`+
+    `<div style="margin-top:10px">COHERENCE ${coh.toFixed(4)} <span class="dim">(NOISE FLOOR ~0.01–0.03 AT N=1000)</span></div>`+
+    `<div>TILT ${yangPct>=50?'YANG':'YIN'} · ${yangPct.toFixed(1)}% YANG LINES</div>`+
+    `<div style="margin-top:10px; font-size:11px" class="dim">CHANGING LINES BY POSITION · BASELINE 25% · RED = BEYOND ~2σ</div>`+
+    `<div style="overflow-x:auto"><table><tr>${lineCells}</tr></table></div>`+
+    `<div style="margin-top:12px; font-size:11px" class="dim">UPPER TRIGRAM WEATHER</div>`+
+    `<div style="overflow-x:auto"><table><tr>${triRow(up)}</tr></table></div>`+
+    `<div style="font-size:11px" class="dim">LOWER TRIGRAM WEATHER</div>`+
+    `<div style="overflow-x:auto"><table><tr>${triRow(lo)}</tr></table></div>`+
+    `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')} · PRESS CAST TO RETURN</div>`;
+  showScreen(kilo.readingHtml);
+  ticker.innerHTML=`FIELD · 1000 CASTS · MODE <b>${glyph(+topP[0][0])} ${topP[0][0]}</b> ×${topP[0][1]} · COHERENCE ${coh.toFixed(3)}`;
+};
+function kiloGrid(){
+  const [a,b,c]=kilo.top;
+  const style=kw=> kw===a?'color:#ff6a3c; text-shadow:0 0 10px rgba(255,80,48,.9)'
+    : kw===b?'color:#ffe9b0; text-shadow:0 0 8px rgba(255,208,112,.8)'
+    : kw===c?'color:#ffd070; text-shadow:0 0 6px rgba(255,208,112,.55)'
+    : 'color:rgba(255,176,0,.42); text-shadow:none';
+  showScreen(
+    `<h2>THE FIELD · 1000 CASTS IN THROW ORDER${kilo.q?' · “'+esc(kilo.q).toUpperCase()+'”':''}</h2>`+
+    `<div style="margin-bottom:8px"><span class="btn" data-kv="reading">≡ VIEW THE READING</span>`+
+    ` <span style="font-size:11px" class="dim">MODE <span style="color:#ff6a3c">${glyph(a)} ${a} ×${kilo.counts[a]}</span>`+
+    ` · 2ND <span style="color:#ffe9b0">${glyph(b)} ${b} ×${kilo.counts[b]}</span>`+
+    ` · 3RD <span style="color:#ffd070">${glyph(c)} ${c} ×${kilo.counts[c]}</span> · BASELINE 15.6</span></div>`+
+    `<div style="font-size:15px; line-height:1.45; letter-spacing:.06em; word-break:break-all">`+
+    kilo.casts.map(kw=>`<span style="${style(kw)}" title="${kw} ${NAMES[kw]}">${glyph(kw)}</span>`).join('')+
+    `</div>`);
+  ticker.textContent='FIELD GRID · EVERY JEWEL OF THE THOUSAND · HOVER FOR NAMES';
+}
+summaryEl.addEventListener('click',e=>{
+  const v=e.target.closest('[data-kv]'); if(!v||!kilo) return;
+  if(v.dataset.kv==='grid') kiloGrid(); else showScreen(kilo.readingHtml);
+});
+
+// ---- LAB: preregistered blind-block intent protocol ----
+// Session: machine picks target hexagram + shuffled block plan BEFORE any
+// casting (preregistration). Blocks are cued INTEND or REST; a third of the
+// INTEND-cued blocks are secretly SHAM (analyzed separately — they test
+// expectation effects vs influence). No target-hit feedback until the end.
+// Fixed length: no optional stopping. Full raw log downloadable as JSON.
+const LAB={BLOCKS_INTEND:8, BLOCKS_SHAM:4, BLOCKS_REST:12, CASTS:40, MS:150};
+let lab=null, labTimer=null;
+const labEl=$('lab');
+function labPlan(){
+  const labels=[...Array(LAB.BLOCKS_INTEND).fill('INTEND'),
+                ...Array(LAB.BLOCKS_SHAM).fill('SHAM'),
+                ...Array(LAB.BLOCKS_REST).fill('REST')];
+  for(let i=labels.length-1;i>0;i--){ // Fisher-Yates on entropy bits
+    let j=0; do{ j=(bit()<<4)|(bit()<<3)|(bit()<<2)|(bit()<<1)|bit(); }while(j>i);
+    [labels[i],labels[j]]=[labels[j],labels[i]];
+  }
+  let t=0; do{ t=(bit()<<5)|(bit()<<4)|(bit()<<3)|(bit()<<2)|(bit()<<1)|bit(); }while(t>=64);
+  return {target:t+1, labels};
+}
+function labStop(){ clearTimeout(labTimer); lab=null; labEl.classList.remove('on');
+  $('btnLab').classList.remove('down'); ticker.textContent='LAB ABORTED · SESSION DISCARDED'; }
+function labStart(){
+  hold(); $('btnHold').classList.remove('down'); summaryEl.classList.remove('on');
+  const {target,labels}=labPlan();
+  lab={target, labels, block:0, castIdx:0, casts:[], t0:new Date().toISOString(), phase:'prereg'};
+  $('btnLab').classList.add('down');
+  labEl.innerHTML=
+    `<div class="fine">PREREGISTERED · ${lab.t0}</div>`+
+    `<div class="target-g">${glyph(target)}</div>`+
+    `<div>TARGET · ${target} ${NAMES[target]}</div>`+
+    `<div class="fine">${labels.length} BLOCKS × ${LAB.CASTS} CASTS · CUED INTEND OR REST<br>`+
+    `SOME INTEND CUES ARE SHAM — YOU CANNOT TELL WHICH<br>`+
+    `NO FEEDBACK UNTIL THE SESSION ENDS · NO EARLY STOPPING<br><br>`+
+    `HOLD THE TARGET IN MIND ONLY DURING INTEND · PRESS ⚗ LAB TO BEGIN</div>`;
+  labEl.classList.add('on');
+  ticker.textContent='LAB · PREREGISTRATION ON SCREEN · ⚗ TO BEGIN, ■ TO ABORT';
+}
+function labBlock(){
+  if(lab.block>=lab.labels.length){ labResults(); return; }
+  const cue=lab.labels[lab.block]==='REST'?'REST':'INTEND'; // sham cues as intend
+  labEl.innerHTML=
+    `<div class="fine">BLOCK ${lab.block+1} / ${lab.labels.length}</div>`+
+    `<div class="cue ${cue==='INTEND'?'intend':'rest'}">${cue}</div>`+
+    (cue==='INTEND'?`<div class="target-g">${glyph(lab.target)}</div>`:
+     `<div class="target-g" style="opacity:.15">${glyph(lab.target)}</div>`)+
+    `<div class="fine" id="labProg"></div>`;
+  lab.castIdx=0; lab.phase='run';
+  labCast();
+}
+function labCast(){
+  if(!lab) return;
+  const lines=toss(); const kw=kwOf(lines);
+  lab.casts.push({b:lab.block, l:lab.labels[lab.block], kw});
+  lab.castIdx++;
+  const p=document.getElementById('labProg');
+  if(p) p.textContent='█'.repeat(Math.round(lab.castIdx/LAB.CASTS*24)).padEnd(24,'░');
+  if(lab.castIdx>=LAB.CASTS){ lab.block++; labTimer=setTimeout(labBlock,1800); }
+  else labTimer=setTimeout(labCast, LAB.MS);
+}
+function labResults(){
+  const p=1/64;
+  const cond=l=>{ const cs=lab.casts.filter(c=>c.l===l); const n=cs.length;
+    const hits=cs.filter(c=>c.kw===lab.target).length;
+    const z=n?(hits-n*p)/Math.sqrt(n*p*(1-p)):0;
+    return {n,hits,rate:n?hits/n:0,z}; };
+  const I=cond('INTEND'), S=cond('SHAM'), R=cond('REST');
+  const row=(name,c)=>`<tr><td>${name}</td><td>${c.hits}/${c.n}</td><td>${(c.rate*100).toFixed(2)}%</td><td>${c.z>=0?'+':''}${c.z.toFixed(2)}σ</td></tr>`;
+  const logObj={protocol:'FO-64 LAB v1',prereg:lab.t0,target:lab.target,
+    blocks:{intend:LAB.BLOCKS_INTEND,sham:LAB.BLOCKS_SHAM,rest:LAB.BLOCKS_REST,casts:LAB.CASTS},
+    entropy:'crypto.getRandomValues',casts:lab.casts,
+    results:{INTEND:I,SHAM:S,REST:R}};
+  const href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(logObj));
+  const verdict = I.z>=3 ? 'STRONG DEVIATION — REPLICATE BEFORE BELIEVING IT'
+    : I.z>=2 ? 'SUGGESTIVE — WITHIN REACH OF CHANCE; RUN MORE SESSIONS'
+    : 'WITHIN CHANCE — AN HONEST NULL IS A RESULT';
+  labEl.innerHTML=
+    `<div class="fine">SESSION COMPLETE · TARGET ${glyph(lab.target)} ${lab.target} ${NAMES[lab.target]} · BASELINE ${(p*100).toFixed(2)}%</div>`+
+    `<table><tr><th>CONDITION</th><th>HITS</th><th>RATE</th><th>Z</th></tr>`+
+    row('INTEND',I)+row('SHAM (cued intend)',S)+row('REST',R)+`</table>`+
+    `<div>${verdict}</div>`+
+    `<div class="fine">SHAM ≈ INTEND WITH BOTH ELEVATED SUGGESTS EXPECTATION, NOT INFLUENCE<br>`+
+    `ONE SESSION PROVES NOTHING IN EITHER DIRECTION — THE LOG IS THE PRODUCT</div>`+
+    `<a download="fo64-lab-${lab.t0.replace(/[:.]/g,'-')}.json" href="${href}">▼ DOWNLOAD RAW LOG (JSON)</a>`+
+    `<div class="fine">⚗ NEW SESSION · ■ CLOSE</div>`;
+  lab.phase='done';
+  ticker.textContent='LAB · RESULTS ON SCREEN';
+}
+$('btnLab').onclick=()=>{
+  if(!lab){ labStart(); return; }
+  if(lab.phase==='prereg'){ lab.phase='run'; ticker.textContent='LAB · SESSION RUNNING'; labBlock(); return; }
+  if(lab.phase==='done'){ labStart(); return; }
+};
+$('btnRead').addEventListener('click',()=>{ if(lab) labStop(); });
+
+// ---- LEARN: teaching machine, from the ground up ----
+// Stage 1 trigrams → Stage 2 lines & change → Stage 3 the 64 (Wilhelm-spirit
+// paraphrases, not verbatim Wilhelm-Baynes, which is still in copyright).
+const TRI=[
+ {b:7,g:'☰',n:'QIAN',en:'HEAVEN',attr:'THE CREATIVE — STRONG',fam:'FATHER',img:'sky, pure yang, ceaseless motion',
+  dir:'NORTHWEST',sea:'LATE AUTUMN',body:'HEAD',ani:'HORSE',
+  q:'Untiring strength and initiative. Where Qian appears, the energy is direct, forward, generative — the impulse that begins things and does not stop. Excess: force without listening.'},
+ {b:0,g:'☷',n:'KUN',en:'EARTH',attr:'THE RECEPTIVE — YIELDING',fam:'MOTHER',img:'earth, pure yin, carries and completes',
+  dir:'SOUTHWEST',sea:'LATE SUMMER',body:'BELLY',ani:'OX, MARE',
+  q:'Devotion and capacity. Kun receives what the creative initiates and gives it body, place, completion. Its power is in yielding without losing shape. Excess: passivity, drift.'},
+ {b:1,g:'☳',n:'ZHEN',en:'THUNDER',attr:'THE AROUSING — MOVEMENT',fam:'ELDEST SON',img:'thunder, shock that awakens',
+  dir:'EAST',sea:'SPRING',body:'FOOT',ani:'DRAGON',
+  q:'The first shock of movement — spring breaking winter, the startle that mobilizes. One strong line pushing up under two yielding ones. Excess: agitation, false starts.'},
+ {b:2,g:'☵',n:'KAN',en:'WATER',attr:'THE ABYSMAL — DANGER',fam:'MIDDLE SON',img:'water, ravine, the moon; flows through',
+  dir:'NORTH',sea:'WINTER',body:'EAR',ani:'PIG',
+  q:'Depth, danger, and the work that passes through it. One strong line held between two yielding — the heart true inside the hazard. Water teaches: fill every hollow, keep moving. Excess: entrapment, brooding.'},
+ {b:4,g:'☶',n:'GEN',en:'MOUNTAIN',attr:'KEEPING STILL — REST',fam:'YOUNGEST SON',img:'mountain, stillness, the door kept',
+  dir:'NORTHEAST',sea:'LATE WINTER',body:'HAND',ani:'DOG',
+  q:'Stillness, boundary, completion. One strong line resting on top of two yielding — movement come to rest at its natural limit. The keeper of thresholds. Excess: rigidity, isolation.'},
+ {b:6,g:'☴',n:'XUN',en:'WIND',attr:'THE GENTLE — PENETRATING',fam:'ELDEST DAUGHTER',img:'wind and wood, gradual entering',
+  dir:'SOUTHEAST',sea:'EARLY SUMMER',body:'THIGH',ani:'ROOSTER',
+  q:'Gradual, persistent influence — wind that enters every crack, roots that split stone slowly. One yielding line entering beneath two strong. Excess: indecision, dispersal.'},
+ {b:5,g:'☲',n:'LI',en:'FIRE',attr:'THE CLINGING — LIGHT',fam:'MIDDLE DAUGHTER',img:'fire, sun, clarity that depends on fuel',
+  dir:'SOUTH',sea:'SUMMER',body:'EYE',ani:'PHEASANT',
+  q:'Clarity, articulation, and dependence — flame gives light only while it clings to what it burns. One yielding line held within two strong. Excess: brilliance without ground.'},
+ {b:3,g:'☱',n:'DUI',en:'LAKE',attr:'THE JOYOUS — PLEASURE',fam:'YOUNGEST DAUGHTER',img:'open lake, mist, the mouth; joy',
+  dir:'WEST',sea:'AUTUMN',body:'MOUTH',ani:'SHEEP',
+  q:'Joy, exchange, the open surface — the lake that reflects and refreshes, the mouth that speaks and tastes. One yielding line open above two strong. Excess: indulgence, mere talk.'}];
+const TRIG_BY_B={}; TRI.forEach(t=>TRIG_BY_B[t.b]=t);
+const MEAN=["",
+ "Pure yang. The primal creative power of heaven; success through strength that perseveres.",
+ "Pure yin. Devotion and receptivity; the earth that carries everything and completes what the creative begins.",
+ "Sprouting through hardship. Chaos before order; persevere, and seek helpers.",
+ "Inexperience seeking a teacher. The sincere question is answered once; do not ask three times.",
+ "Nourishment through patience. Strength that waits for the right moment without doubting it.",
+ "Opposition. Halt halfway; forcing a conflict to its end brings misfortune.",
+ "Organized strength. The army needs discipline, a just cause, and a seasoned leader.",
+ "Union around a center. Alliance formed while the time allows; the latecomer meets misfortune.",
+ "Small restraints. Gentle influence only; dense clouds, no rain yet.",
+ "Conduct. Treading on the tiger's tail — courtesy and care amid danger.",
+ "Heaven and earth commune. Prosperity; the small departs, the great approaches.",
+ "Heaven and earth apart. Stagnation; withdraw and keep your worth inward.",
+ "Fellowship in the open. Community that is universal, not factional, succeeds.",
+ "Great possession. Abundance held with humility and inner clarity endures.",
+ "Modesty. What is full is diminished, what is modest is increased; modesty carries all things through.",
+ "Enthusiasm. Energy aligned with the time; movement that meets no resistance.",
+ "Following. Adapt to the demands of the time; to lead, first learn to follow.",
+ "Decay invites repair. Deliberate work on what has been spoiled; three days before, three days after.",
+ "Approach. The great draws near; act while the time is favorable, for it passes.",
+ "Contemplation. The tower view — observing and being seen; teach by example, not force.",
+ "Biting through. The obstacle is removed by one decisive act; justice must bite.",
+ "Grace. Form and ornament clarify small matters; great matters are not decided by beauty.",
+ "Splitting apart. Erosion from below; the time to act has not come — hold still.",
+ "Return. The turning point; after the solstice the light comes back of itself.",
+ "Innocence. The unexpected; act from natural sincerity, not calculation, and all goes well.",
+ "The taming power of the great. Strength stored and held firm; character renewed daily.",
+ "Nourishment. Watch what goes into the mouth and what comes out of it.",
+ "The beam sags. Extraordinary times; extraordinary action, alone if necessary, without fear.",
+ "Danger repeated. Be like water: fill every hollow, keep flowing, stay true within.",
+ "Fire clings to what it burns. Clarity is dependent; care for what sustains your light.",
+ "Influence. Wooing; mutual attraction. Keep the heart still so it can receive.",
+ "Duration. The constant that persists through change; endure by renewing.",
+ "Retreat. Timely withdrawal is strength, not flight; know when to yield ground.",
+ "The power of the great. Great strength stays true only when it forgoes arrogance.",
+ "Progress. The sun rises over the earth; rapid, visible advance.",
+ "Darkening of the light. In dark times, veil your brightness and keep the inner light lit.",
+ "The family. Influence works from within outward; warmth and right roles order the world.",
+ "Opposition. Estrangement; in small matters, success. Unity remains beneath polarity.",
+ "Obstruction. The pass is blocked: pause, turn inward, seek allies, go around.",
+ "Deliverance. The storm breaks; forgive quickly and return to the ordinary.",
+ "Decrease. Simplicity below serves what is above; sincerity makes even little enough.",
+ "Increase. The time of gain — use it to do good boldly while it lasts.",
+ "Breakthrough. Announce the truth openly at court; resolution without weapons.",
+ "Coming to meet. The unexpected enters small — do not underestimate what arrives.",
+ "Gathering together. The mass assembles around a center; prepare for what gathering brings.",
+ "Pushing upward. Effortless steady growth, like wood rising within the earth.",
+ "Oppression. Exhausted, and words are not believed; stay cheerful in adversity and say little.",
+ "The well. The town may change, the well remains; the inexhaustible source, if the rope reaches.",
+ "Revolution. Molting; a change believed only on the day it is complete.",
+ "The cauldron. The vessel of transformation; nourish the able and the work succeeds.",
+ "Shock. Thunder frightens for a hundred miles — then teaches reverence and self-examination.",
+ "Keeping still. Stillness of the back; rest when it is time to rest, act when it is time to act.",
+ "Development. Gradual progress, like the tree on the mountain: slow, and therefore lasting.",
+ "The marrying maiden. Entering on subordinate terms; tact and patience within constraint.",
+ "Abundance. Fullness at noon — act now, for the sun begins to set at its height.",
+ "The wanderer. A stranger passing through: travel light, stay courteous, do not settle in.",
+ "The gentle. Wind following wind; small persistent influence penetrates everything.",
+ "The joyous. Lake beside lake; joy shared between friends, encouragement in practice.",
+ "Dispersion. Wind over water scatters what is rigid; dissolve what divides.",
+ "Limitation. Measure; galling limits fail, bearable limits endure.",
+ "Inner truth. Sincerity so complete it moves pigs and fishes; the empty heart hears.",
+ "Preponderance of the small. Small acts done exceptionally well; do not strive upward now.",
+ "After completion. Order is achieved — guard the details, for completion breeds disorder.",
+ "Before completion. The fox is nearly across; everything is in place, nothing is finished."];
+// Judgments (j) and the six line texts (l, bottom first) — compact
+// paraphrases of the traditional statements, Wilhelm-spirit not verbatim.
+const HEXT={
+1:{j:"Sublime success through perseverance.",l:["Hidden dragon — do not act.","Dragon appearing in the field — it furthers to see the great man.","Creative all day, vigilant at nightfall — danger, but no blame.","Wavering flight over the depths — no blame.","Flying dragon in the heavens — it furthers to see the great man.","Arrogant dragon will have cause to repent."]},
+2:{j:"Success through the perseverance of a mare; quiet leading, not forcing.",l:["Hoarfrost underfoot — solid ice is near.","Straight, square, great — without purpose, nothing remains unfurthered.","Hidden excellence: serve without claiming the completed work.","A tied-up sack — no blame, no praise.","A yellow lower garment — supreme good fortune.","Dragons fight in the meadow; their blood is black and yellow."]},
+3:{j:"Success through perseverance; appoint helpers, do not press forward yet.",l:["Hesitation at the outset — persevere and seek helpers.","Difficulties mount up; the maiden waits ten years before pledging.","Hunting deer without the forester loses the way — desist, or regret.","Horse and wagon part; seek union — going brings good fortune.","Difficulty in blessing: small perseverance succeeds, great perseverance fails.","Horse and wagon part; tears of blood flow — do not persist here."]},
+4:{j:"The young fool seeks me; the first question is answered, insistence is not.",l:["Discipline begins the fool — then remove the fetters in time.","Bearing with fools in kindness — the son can carry the household.","Do not take the maiden who loses herself at the sight of bronze.","Entangled folly brings humiliation.","Childlike folly brings good fortune.","In punishing folly, prevent transgression — do not commit it."]},
+5:{j:"Sincerity brings shining success; it furthers to cross the great water.",l:["Waiting in the meadow — abide in what endures.","Waiting on the sand — a little gossip; the end brings fortune.","Waiting in the mud invites the arrival of the enemy.","Waiting in blood — get out of the pit.","Waiting at meat and drink — perseverance brings good fortune.","Three uninvited guests arrive — honor them, and the end is good."]},
+6:{j:"Halt halfway; see the great man; do not cross the great water.",l:["Drop the issue early — a little gossip, but a good end.","One cannot contend; yield and go home — no disaster touches the town.","Live on old, proven virtue — danger, but the end is good.","One cannot contend; turn back to the way — peace in perseverance.","Contending before the just judge — supreme good fortune.","The belt awarded at morning is thrice stripped away by noon."]},
+7:{j:"Perseverance and a seasoned leader bring good fortune without blame.",l:["An army must set forth in proper order — else misfortune.","In the midst of the army — the king bestows a triple decoration.","The army carries corpses in the wagon — misfortune.","The army retreats in good order — no blame.","Game in the field — capture it; let the eldest lead, not the youngest.","The great prince issues commands — do not employ inferior people."]},
+8:{j:"Union around a center; the latecomer meets misfortune.",l:["Hold to him in truth, a full earthen bowl — fortune comes from without.","Hold to him inwardly — perseverance brings good fortune.","You hold together with the wrong people.","Hold to him outwardly also — perseverance brings good fortune.","Manifest union: the king drives game on three sides only.","No head for holding together — misfortune."]},
+9:{j:"Dense clouds, no rain from our western region — gentle restraint only.",l:["Returning to one's own way — how could that be blamed? Fortune.","He allows himself to be drawn back with others — good fortune.","The wagon's spokes burst; man and wife roll their eyes.","Sincerity: blood vanishes and fear gives way — no blame.","Sincere and loyally attached — riches shared with the neighbor.","The rain comes, the resting comes; the moon is nearly full — halt now."]},
+10:{j:"Treading on the tiger's tail — it does not bite; success.",l:["Simple conduct — progress without blame.","A level, easy road; the quiet one's perseverance brings fortune.","The one-eyed sees, the lame treads — the tiger bites.","Treading on the tiger's tail with utmost caution — success in the end.","Resolute conduct — persevere with awareness of danger.","Look back over the path and weigh the omens; completion brings supreme fortune."]},
+11:{j:"The small departs, the great approaches — good fortune, success.",l:["Pull up the grass and the sod comes with it — undertakings bring fortune.","Bear with the uncultured, cross the river resolutely — hold the middle.","No plain that is not followed by a slope — persevere through hardship.","He flutters down, not boasting of wealth, sincere with his neighbor.","The sovereign gives his daughter in marriage — blessing and supreme fortune.","The wall falls back into the moat — use no army; proclaim within your own town."]},
+12:{j:"Standstill: the great departs, the small approaches; withdraw inner worth.",l:["Pull up the grass together — perseverance brings fortune and success.","They bear and endure — the great man's standstill leads to success.","They bear shame.","Acting by higher command — no blame; the like-minded share the blessing.","The standstill is giving way — 'what if it should fail?' Tie it to a mulberry clump.","The standstill comes to an end — first standstill, then good fortune."]},
+13:{j:"Fellowship in the open succeeds; it furthers to cross the great water.",l:["Fellowship at the gate — no blame.","Fellowship confined to the clan — humiliation.","Weapons hidden in the thicket; three years he does not rise.","He climbs his wall but cannot attack — good fortune.","Bound in fellowship: first weeping, then laughter; after struggle they meet.","Fellowship in the meadow — no remorse."]},
+14:{j:"Possession in great measure — supreme success.",l:["No contact with what is harmful — remain conscious of difficulty, no blame.","A big wagon for loading — one may undertake something.","A prince offers it to the Son of Heaven; a petty man cannot.","He keeps his power from displaying itself — no blame.","Sincerity, dignified yet accessible — good fortune.","Heaven itself blesses him — good fortune; nothing that does not further."]},
+15:{j:"Modesty creates success; the superior man carries things through.",l:["Modest about modesty — one may cross the great water.","Modesty that comes to expression — perseverance brings fortune.","The superior man of merit and modesty carries things to conclusion.","Nothing that would not further modesty in movement.","No boasting of wealth before the neighbor; energetic action is favorable now.","Modesty that expresses itself — set armies marching to discipline one's own city."]},
+16:{j:"Enthusiasm: it furthers to install helpers and set armies marching.",l:["Enthusiasm that boasts of itself brings misfortune.","Firm as a rock — not a whole day; perseverance brings fortune.","Enthusiasm gazing upward brings remorse; hesitation does also.","The source of enthusiasm — friends gather like hair held by a clasp.","Persistently ill, and yet never dies.","Deluded enthusiasm — but if one changes after completion, no blame."]},
+17:{j:"Following: supreme success through perseverance, no blame.",l:["The standard is changing — going out and mingling brings achievement.","Clinging to the little boy, one loses the strong man.","Clinging to the strong man, one loses the little boy — one finds what one seeks.","Following creates success — go one's way in sincerity and clarity.","Sincere in the good — good fortune.","Firm allegiance, bound fast — the king presents him to the western mountain."]},
+18:{j:"Work on the spoiled: cross the water; three days before the start, three after.",l:["Setting right the father's spoiling — danger, but no blame in the end.","Setting right the mother's spoiling — one must not be too persevering.","Setting right the father's spoiling — a little remorse, no great blame.","Tolerating the father's spoiling — continuing brings humiliation.","Setting right the father's spoiling — one meets with praise.","He does not serve kings and princes; he sets himself higher goals."]},
+19:{j:"Approach: great success through perseverance; in the eighth month, misfortune.",l:["Joint approach — perseverance brings good fortune.","Joint approach — everything furthers.","Comfortable approach — if one grieves over it, no blame.","Complete approach — no blame.","Wise approach, as befits a great prince — good fortune.","Greathearted approach — good fortune, no blame."]},
+20:{j:"The ablution is made, not yet the offering; sincerity inspires trust.",l:["Boylike contemplation — for the superior man, humiliation.","Contemplation through the crack of the door.","Contemplating my own life decides advance or retreat.","Contemplating the light of the kingdom — be the guest of a king.","Contemplating my own life — the superior man is without blame.","Contemplating his own life from above — without blame."]},
+21:{j:"Biting through: success; it furthers to administer justice.",l:["Feet fastened in the stocks, toes disappear — no blame.","Biting through soft meat, the nose disappears — no blame.","Biting on old dried meat and striking poison — slight humiliation, no blame.","Biting on dried gristly meat, gaining metal arrows — persevere in hardship.","Biting on dried lean meat, gaining yellow gold — aware of danger, no blame.","Neck fastened in the wooden cangue, ears disappear — misfortune."]},
+22:{j:"Grace brings success — in small matters it is favorable to act.",l:["Grace in the toes — leave the carriage and walk.","Grace in the beard — it moves only with what it grows on.","Graceful and moist — constant perseverance brings fortune.","Grace or simplicity? A white horse comes as if on wings — a suitor, not a robber.","Grace in hills and gardens; the roll of silk is meager — humiliation, then fortune.","Simple grace — no blame."]},
+23:{j:"Splitting apart: it does not further to go anywhere.",l:["The bed's leg splits — the persevering are destroyed.","The bed splits at the edge — the persevering are destroyed.","He splits with them — no blame.","The bed splits up to the skin — misfortune.","A shoal of fishes; favor comes through the court ladies — everything furthers.","The great fruit is still uneaten; the superior man receives a carriage."]},
+24:{j:"Return: going out and coming in without error; the seventh day brings return.",l:["Return from a short distance — supreme good fortune.","Quiet return — good fortune.","Repeated return — danger, but no blame.","Walking in the midst of others, one returns alone.","Noblehearted return — no remorse.","Missing the return brings misfortune; armies will be beaten for ten years."]},
+25:{j:"Innocence: great success if right; if not as it should be, misfortune.",l:["Innocent behavior brings good fortune.","Plow without counting the harvest — then it furthers to undertake.","Undeserved misfortune: the wanderer's gain is the citizen's loss.","He who can be persevering remains without blame.","An illness not your own fault — use no medicine; it will pass.","Innocent action when the time is against it brings misfortune."]},
+26:{j:"Taming the great: not eating at home brings fortune; cross the water.",l:["Danger is at hand — it furthers to desist.","The axletrees are taken from the wagon.","A good horse that follows others — practice driving daily, and remain armed.","The headboard of a young bull — supreme good fortune.","The tusk of a gelded boar — good fortune.","One attains the way of heaven — success."]},
+27:{j:"Nourishment: heed what you feed and what fills your own mouth.",l:["You let your magic tortoise go and eye me with drooping mouth — misfortune.","Deviating from the path to seek nourishment on the hill — misfortune.","Turning away from nourishment — for ten years do not act.","Seeking nourishment from above with eyes like a tiger's — no blame.","Turning from the path — abide in perseverance; do not cross the water.","The source of nourishment — danger accepted brings fortune; cross the water."]},
+28:{j:"The ridgepole sags to breaking; it furthers to have somewhere to go.",l:["Spread white rushes underneath — no blame.","A dry poplar sprouts; an older man takes a young wife — everything furthers.","The ridgepole sags to the breaking point — misfortune.","The ridgepole is braced — good fortune; ulterior motives bring humiliation.","A withered poplar puts forth flowers — no blame, no praise.","One must wade through, the water over one's head — misfortune, but no blame."]},
+29:{j:"The abyss repeated: if you are sincere, the heart attains success.",l:["Repetition of the abyss — falling into the pit; misfortune.","The abyss is dangerous — strive only to attain small things.","Every step, forward or back, leads into danger — pause and wait.","A jug of wine, a bowl of rice, handed through the window — no blame in the end.","The abyss fills only to the rim — no blame.","Bound with cords and hedged with thorns; for three years one finds no way."]},
+30:{j:"The clinging: perseverance furthers; care of the cow brings fortune.",l:["Footprints run crisscross — seriousness at the start brings no blame.","Yellow light — supreme good fortune.","In the light of the setting sun, men drum and sing, or lament great age.","Its coming is sudden: it flames up, dies down, is thrown away.","Tears in floods, sighing and lamenting — good fortune.","The king uses him to punish: kill the leaders, spare the followers."]},
+31:{j:"Influence: success; taking a maiden to wife brings good fortune.",l:["The influence shows in the big toe.","The influence shows in the calves — misfortune; tarrying brings fortune.","The influence shows in the thighs — holding to what follows is humiliating.","Perseverance brings fortune; unsettled to and fro — only friends follow your thought.","The influence shows in the back of the neck — no remorse.","The influence shows in jaws, cheeks, and tongue."]},
+32:{j:"Duration: success, no blame; it furthers to have somewhere to go.",l:["Seeking duration too hastily brings persistent misfortune.","Remorse disappears.","He who gives no duration to his character meets with disgrace.","No game in the field.","Giving duration through perseverance — fortune for the yielding, not the leading.","Restlessness as an enduring condition brings misfortune."]},
+33:{j:"Retreat: success; in what is small, perseverance furthers.",l:["At the tail in retreat — dangerous; undertake nothing.","He holds him fast with yellow oxhide — no one can tear him loose.","A halted retreat is galling; retainers bring fortune only in service.","Voluntary retreat — fortune for the superior man, decline for the small.","Friendly retreat — perseverance brings good fortune.","Cheerful retreat — everything furthers."]},
+34:{j:"The power of the great: perseverance furthers.",l:["Power in the toes — continuing brings certain misfortune.","Perseverance brings good fortune.","The inferior man works through power; the superior man does not — the ram butts the hedge.","The hedge opens, no entanglement; power rests in the axle of a great cart.","He loses the goat with ease — no remorse.","The goat butts the hedge and can go neither back nor forward — seeing the difficulty brings fortune."]},
+35:{j:"Progress: the powerful prince is honored and received three times a day.",l:["Progressing but turned back — remain calm when confidence is withheld.","Progressing in sorrow — perseverance; great happiness from the ancestress.","All are in accord — remorse disappears.","Progress like a hamster hoarding — perseverance brings danger.","Remorse vanishes — take not gain and loss to heart; going brings fortune.","Advancing with the horns only to punish one's own city — danger, yet no blame."]},
+36:{j:"Darkening of the light: in adversity, perseverance in awareness furthers.",l:["Wings drooping in flight; three days without food — the wanderer has a goal.","Wounded in the left thigh — a strong horse brings rescue.","Darkening in the southern hunt; the great leader is captured — expect nothing too soon.","In the left of the belly one finds the dark one's very heart — and leaves.","Darkening of the light as with Prince Chi — perseverance furthers.","Not light but darkness: first he climbed to heaven, then plunged to earth."]},
+37:{j:"The family: the perseverance of the woman furthers.",l:["Firm seclusion within the family — remorse disappears.","No arbitrary following; within, she provides nourishment — good fortune.","Hot temper brings remorse yet fortune; laxity brings humiliation.","She is the treasure of the house — great good fortune.","As a king he approaches his family — fear not; good fortune.","His work commands respect — in the end, good fortune."]},
+38:{j:"Opposition: in small matters, good fortune.",l:["Remorse disappears; do not chase the lost horse — it returns of itself.","One meets his lord in a narrow street — no blame.","Wagon dragged back, oxen halted — a bad beginning, a good end.","Isolated through opposition, one meets a like-minded man — sincerity, no blame.","Remorse disappears; the companion bites through the wrappings.","First seen as a pig covered with dirt — the tension gives way; then rain, then fortune."]},
+39:{j:"Obstruction: the southwest furthers; see the great man.",l:["Going leads to obstructions; coming meets with praise.","The king's servant meets obstruction upon obstruction — not his own fault.","Going leads to obstructions — hence he comes back.","Going leads to obstructions; coming leads to union.","In the midst of the greatest obstructions, friends come.","Going leads to obstructions, coming to great good fortune — see the great man."]},
+40:{j:"Deliverance: if there is still work, hastening brings good fortune.",l:["Without blame.","One kills three foxes in the field and receives a yellow arrow — perseverance brings fortune.","Carrying a burden yet riding in a carriage invites robbers.","Deliver yourself from your great toe — then the companion comes, and you can trust him.","The superior man delivers himself — good fortune; proof even to inferior men.","The prince shoots the hawk on the high wall — everything serves to further."]},
+41:{j:"Decrease with sincerity brings supreme fortune; two small bowls suffice.",l:["Going quickly when one's tasks are finished — no blame; weigh how much to decrease.","Perseverance furthers; increase others without decreasing yourself.","When three travel together, one is lost; the lone traveler finds a companion.","Decreasing one's faults makes the other hasten to rejoice — no blame.","Someone increases him; ten pairs of tortoises cannot oppose it — supreme fortune.","One is increased without depriving others — no blame; perseverance brings fortune."]},
+42:{j:"Increase: it furthers to undertake something and to cross the great water.",l:["It furthers to accomplish great deeds — supreme good fortune, no blame.","Someone increases him; ten pairs of tortoises cannot oppose it — constant perseverance.","One is enriched through unfortunate events — no blame with sincerity and the middle way.","Walk in the middle and report to the prince — be trusted in great undertakings.","A kind heart asks no questions — kindness will be recognized as your virtue.","He brings increase to no one; someone even strikes him — misfortune."]},
+43:{j:"Breakthrough: announce it truthfully at the king's court; arms do not further.",l:["Mighty in the forward-striding toes — going without capacity is a mistake.","A cry of alarm; arms at evening and night — fear nothing.","Power in the cheekbones brings misfortune; walk alone in rain, bespattered — no blame.","No skin on the thighs, walking is hard — let yourself be led like a sheep.","In dealing with weeds, firm resolution; walking in the middle frees from blame.","No cry of warning — in the end misfortune comes."]},
+44:{j:"Coming to meet: the maiden is powerful — do not marry such a maiden.",l:["Check it with a brake of bronze; a lean pig thrashes around inside.","There is a fish in the tank — no blame; it does not further guests.","No skin on the thighs, walking is hard — if mindful of the danger, no great mistake.","No fish in the tank — misfortune arises.","A melon covered with willow leaves — hidden lines; it falls to one from heaven.","He comes to meet with his horns — humiliation, but no blame."]},
+45:{j:"Gathering: the king approaches his temple; great offerings bring fortune.",l:["Sincerity not carried to the end: confusion, then gathering — a grasp of the hand brings laughter.","Letting oneself be drawn brings good fortune — a small offering, sincerely brought.","Gathering together amid sighs — going is without blame, slight humiliation.","Great good fortune, no blame.","Gathering around a position — sublime, enduring perseverance dissolves remorse.","Lamenting and sighing, floods of tears — but no blame."]},
+46:{j:"Pushing upward: see the great man; a departure toward the south brings fortune.",l:["Pushing upward that meets confidence — great good fortune.","If one is sincere, a small offering suffices — no blame.","One pushes upward into an empty city.","The king offers it on Mount Qi — good fortune, no blame.","Perseverance brings fortune — one pushes upward by steps.","Pushing upward in darkness exhausts itself — unremitting perseverance only."]},
+47:{j:"Oppression: success for the great through perseverance; words are not believed.",l:["Sitting oppressed under a bare tree — into a gloomy valley for three years.","Oppressed at meat and drink; the man of the scarlet knee bands comes — offer sacrifice.","Oppressed by stone, leaning on thorns; he does not see his wife — misfortune.","He comes softly, oppressed in a golden carriage — humiliation, but an end.","Oppressed by the one above — joy comes softly; it furthers to offer sacrifice.","Oppressed by creeping vines; remorse upon remorse — going brings good fortune."]},
+48:{j:"The well: the town may change, the well cannot; if the rope does not reach, misfortune.",l:["The mud of the well is not drunk; no creatures come to an old well.","At the wellhole one shoots fishes; the jug is broken and leaks.","The well is cleaned but no one drinks from it — this is my heart's sorrow.","The well is being lined — no blame.","In the well there is a clear, cold spring from which one can drink.","One draws from the well without hindrance — it is dependable; supreme fortune."]},
+49:{j:"Revolution: on your own day you are believed; remorse disappears.",l:["Wrapped in the hide of a yellow cow — hold still.","When one's own day comes, one may create revolution — good fortune.","Starting brings misfortune; when talk of revolution has gone round three times, commit.","Remorse disappears; men believe him — changing the order brings good fortune.","The great man changes like a tiger — believed even before the oracle.","The superior man changes like a panther; the inferior molts in the face — stay put now."]},
+50:{j:"The cauldron: supreme good fortune, success.",l:["A cauldron with legs upturned — removing what stagnated; the concubine bears a son.","There is food in the cauldron; my comrades are envious but cannot harm me.","The handle of the cauldron is altered; the pheasant fat goes uneaten — rain dispels remorse.","The legs of the cauldron break; the prince's meal is spilled — misfortune.","The cauldron has yellow handles, golden carrying rings — perseverance furthers.","The cauldron has rings of jade — great good fortune; nothing that does not further."]},
+51:{j:"Shock brings success — then laughing words; he does not drop the sacrificial spoon.",l:["Shock comes — oh, oh! Then laughing words — ha, ha! Good fortune.","Shock brings danger; do not chase your lost treasures — in seven days you get them back.","Shock stuns — but if it spurs one to act, no misfortune.","Shock is mired.","Shock goes hither and thither — nothing is lost, yet there are things to be done.","Shock brings ruin and terrified gazing; act before it reaches your own body."]},
+52:{j:"Keeping still: no ego, no goal; he goes into the courtyard and sees no one.",l:["Keeping the toes still — no blame; constant perseverance furthers.","Keeping the calves still — he cannot rescue the one he follows; his heart is not glad.","Keeping the hips still, stiffening the sacrum — danger; the heart suffocates.","Keeping the trunk still — no blame.","Keeping the jaws still — the words have order; remorse disappears.","Noblehearted keeping still — good fortune."]},
+53:{j:"Development: the maiden is given in marriage — fortune through perseverance.",l:["The wild goose draws near the shore; the young son in danger — talk, but no blame.","The goose draws near the cliff; eating and drinking in peace — good fortune.","The goose nears the plateau; the husband goes and does not return — ward off robbers.","The goose nears the tree; perhaps a flat branch — no blame.","The goose nears the summit; three years no child — yet in the end nothing prevails against it.","The goose draws near the cloud heights; its feathers can serve the sacred dance."]},
+54:{j:"The marrying maiden: undertakings bring misfortune; nothing that furthers.",l:["The maiden as concubine; the lame man is able to tread — undertakings bring fortune.","A one-eyed man is able to see; the perseverance of a solitary one furthers.","The maiden in servitude — she marries as a concubine.","The maiden delays her marriage — a late marriage comes in its own time.","The princess's garments were less gorgeous than her maid's; the near-full moon brings fortune.","The woman holds a basket with no fruit in it; the man stabs a sheep, no blood flows."]},
+55:{j:"Abundance: the king attains it; be not sad — be like the sun at midday.",l:["Meeting the destined ruler — ten days together without blame; going meets recognition.","The curtain of such fullness the polestars show at noon — awaken trust through truth.","The underbrush of such abundance the small stars show at noon; he breaks his right arm — no blame.","The curtain of such fullness the polestars show at noon — he meets his ruler of like kind.","Lines are coming, blessing and fame draw near — good fortune.","His house in a state of abundance; he screens off his family — for three years he sees no one."]},
+56:{j:"The wanderer: success in what is small; perseverance brings the wanderer fortune.",l:["The wanderer busy with trivial things draws misfortune upon himself.","The wanderer comes to an inn with his property, and wins a young servant's steadfastness.","The wanderer's inn burns down; he loses his servant's steadfastness — danger.","A resting place, property, and an axe — but my heart is not glad.","He shoots a pheasant; it drops with the first arrow — in the end, praise and office.","The bird's nest burns; the wanderer laughs first, then laments; he loses the cow — misfortune."]},
+57:{j:"The gentle: success through what is small; see the great man.",l:["In advancing and in retreating — the perseverance of a warrior furthers.","Penetration under the bed; priests and magicians in great number — good fortune.","Repeated penetration — humiliation.","Remorse vanishes; three kinds of game are caught in the hunt.","Perseverance brings fortune; no beginning, but an end — three days before and after the change.","Penetration under the bed; he loses his property and his axe — misfortune."]},
+58:{j:"The joyous: success; perseverance is favorable.",l:["Contented joyousness — good fortune.","Sincere joyousness — remorse disappears.","Coming joyousness, sought from outside — misfortune.","Joyousness that is weighed is not at peace; after ridding oneself of mistakes, joy.","Sincerity toward disintegrating influences is dangerous.","Seductive joyousness."]},
+59:{j:"Dispersion: the king approaches his temple; cross the great water.",l:["He brings help with the strength of a horse — good fortune.","At the dissolution, hurry to that which supports you — remorse disappears.","He dissolves his self — no remorse.","He dissolves his bond with his group — supreme fortune; dispersion leads to accumulation.","His loud cries are dissolving like sweat; the king abides without blame.","He dissolves his blood — going out, keeping at a distance; no blame."]},
+60:{j:"Limitation: success — but galling limitation must not be persevered in.",l:["Not going out of the door and the courtyard — no blame.","Not going out of the gate and the courtyard — misfortune.","He who knows no limitation will have cause to lament — but no blame on others.","Contented limitation — success.","Sweet limitation brings good fortune — going brings esteem.","Galling limitation: perseverance brings misfortune; remorse vanishes."]},
+61:{j:"Inner truth: pigs and fishes — good fortune; cross the great water.",l:["Being prepared brings good fortune; ulterior designs are disquieting.","A crane calling in the shade, its young answers it — I will share my goblet with you.","He finds a comrade: now he beats the drum, now he stops; now he sobs, now he sings.","The moon nearly at the full; the team horse goes astray — no blame.","He possesses truth which links together — no blame.","Cockcrow penetrating to heaven — perseverance brings misfortune."]},
+62:{j:"The small prevails: the flying bird brings the message — stay low, not high.",l:["The bird meets with misfortune through flying.","She passes by her ancestor and meets her ancestress — no blame.","If one is not extremely careful, somebody may come from behind and strike — misfortune.","No blame: he meets without passing by; danger — be constantly on guard, do not act.","Dense clouds, no rain; the prince shoots and hits him who is in the cave.","He passes by and does not meet; the flying bird leaves him — misfortune."]},
+63:{j:"After completion: success in small matters; at first fortune, at the end disorder.",l:["He brakes his wheels, gets his tail in the water — no blame.","The woman loses the curtain of her carriage — do not run after it; on the seventh day, it returns.","The Illustrious Ancestor disciplines the Devil's Country for three years — do not employ inferior people.","The finest clothes turn to rags — be careful all day long.","The neighbor's slaughtered ox brings less blessing than the small but sincere offering.","He gets his head in the water — danger."]},
+64:{j:"Before completion: the little fox, nearly across, gets its tail wet — nothing furthers yet.",l:["He gets his tail in the water — humiliating.","He brakes his wheels — perseverance brings good fortune.","Before completion, attack brings misfortune; it furthers to cross the great water.","Perseverance brings fortune, remorse vanishes; three years of shock, then great reward.","Perseverance brings fortune, no remorse — the light of the superior man is true.","Drinking wine in genuine confidence — no blame; but wet the head, and it is lost."]}
+};
+const learnEl=$('learn');
+let learnOpen=false;
+const go=(p,x)=>`data-go="${p}"${x!==undefined?` data-x="${x}"`:''}`;
+function learnHome(){
+  learnEl.innerHTML=`<h2>TEACHING MACHINE · FROM THE GROUND UP</h2>
+   <div style="line-height:2.4">
+   <span class="btn" ${go('tritab')}>I · THE EIGHT TRIGRAMS</span><br>
+   <span class="btn" ${go('lines')}>II · LINES &amp; CHANGE</span><br>
+   <span class="btn" ${go('pat')}>III · PATTERNS — MEMORIZING THE 64 BY TRIGRAM</span><br>
+   <span class="btn" ${go('grid')}>IV · THE SIXTY-FOUR</span><br>
+   <span class="btn" ${go('drill')}>V · DRILL</span></div>
+   <div class="dim" style="margin-top:14px; font-size:11px; letter-spacing:.12em">
+   DEFINITIONS ARE COMPACT PARAPHRASES IN THE SPIRIT OF WILHELM ·
+   PRESS ✎ LEARN TO CLOSE</div>`;
+}
+function learnTriTable(){
+  learnEl.innerHTML=`<h2>I · THE EIGHT TRIGRAMS</h2>
+   <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; max-width:520px">
+   ${TRI.map((t,i)=>`<div ${go('tri',i)} style="cursor:pointer; text-align:center; padding:12px 4px 10px;
+     border:1px solid var(--phos-faint); border-radius:4px">
+     <div style="font-size:56px; line-height:1.1; text-shadow:0 0 10px rgba(255,176,0,.6)">${t.g}</div>
+     <div style="font-size:12px; letter-spacing:.14em; margin-top:6px">${t.en}</div>
+     <div class="dim" style="font-size:10px; letter-spacing:.12em">${t.n}</div></div>`).join('')}
+   </div>
+   <div class="dim" style="margin-top:12px; font-size:11px">SELECT A TRIGRAM FOR ITS FULL PROFILE ·
+   READ EACH GLYPH BOTTOM-UP</div>
+   <div style="margin-top:10px"><span class="btn" ${go('home')}>MENU</span></div>`;
+}
+function learnTri(i){
+  const t=TRI[i];
+  const dbl=KING_WEN[(t.b<<3)|t.b];
+  learnEl.innerHTML=`<h2>TRIGRAM · ${t.n}</h2>
+   <div style="display:flex; gap:26px; align-items:center; flex-wrap:wrap">
+   <div class="big" style="font-size:54px">${t.g}</div>
+   <div><div>${t.n} · ${t.en}</div><div>${t.attr}</div><div class="dim">${t.fam}</div></div></div>
+   <div style="max-width:56ch; line-height:1.9; margin-top:10px">${t.q}</div>
+   <div class="dim" style="margin-top:8px; font-size:11px; line-height:2">
+   IMAGE · ${t.img.toUpperCase()}<br>
+   DIRECTION ${t.dir} · SEASON ${t.sea} · BODY ${t.body} · ANIMAL ${t.ani}<br>
+   DOUBLED IT FORMS <span class="btn" ${go('hex',dbl)}>${glyph(dbl)} ${dbl} ${NAMES[dbl]}</span></div>
+   <div style="margin-top:14px">
+   ${i>0?`<span class="btn" ${go('tri',i-1)}>◀ PREV</span>`:''}
+   ${i<7?`<span class="btn" ${go('tri',i+1)}>NEXT ▶</span>`:''}
+   <span class="btn" ${go('tritab')}>TABLE</span> <span class="btn" ${go('home')}>MENU</span></div>`;
+}
+function learnPatterns(){
+  const doubles=TRI.map(t=>KING_WEN[(t.b<<3)|t.b]);
+  learnEl.innerHTML=`<h2>III · PATTERNS · THE 64 AS AN 8×8 GRID</h2>
+   <div style="max-width:56ch; line-height:1.9">Memorize by structure, not by list. Start with the
+   <b>eight doubles</b> — each trigram over itself, the pure states on the grid's diagonal:</div>
+   <div style="margin:8px 0; line-height:2.2">${doubles.map((kw,i)=>
+     `<span class="btn" ${go('hex',kw)}>${TRI[i].g}${TRI[i].g} ${glyph(kw)} ${kw} ${NAMES[kw]}</span>`).join(' ')}</div>
+   <div style="max-width:56ch; line-height:1.9">Then everything else is one question: <b>which trigram
+   over which?</b> Rows are the upper (outer) trigram, columns the lower (inner). Doubles are lit.</div>
+   <div style="overflow-x:auto; margin-top:8px"><table style="font-size:12px">
+   <tr><th></th>${TRI.map(t=>`<th>${t.g}</th>`).join('')}</tr>
+   ${TRI.map(u=>`<tr><th>${u.g}</th>${TRI.map(l=>{
+     const kw=KING_WEN[(u.b<<3)|l.b], d=u.b===l.b;
+     return `<td style="cursor:pointer; text-align:center; font-size:20px; padding:1px 6px${d?'; color:#ffe9b0; text-shadow:0 0 10px rgba(255,208,112,.8)':''}" ${go('hex',kw)} title="${kw} ${NAMES[kw]}">${glyph(kw)}<div style="font-size:9px" class="dim">${kw}</div></td>`;
+   }).join('')}</tr>`).join('')}
+   </table></div>
+   <div class="dim" style="font-size:11px; margin-top:8px; line-height:1.9">
+   USEFUL FAMILIES: HEAVEN ROW/COLUMN (1, 44, 33, 12, 20, 23, 35, 14 …) ·
+   THE FOUR CARDINAL PAIRS 11/12 (PEACE/STANDSTILL), 63/64 (AFTER/BEFORE COMPLETION),
+   41/42 (DECREASE/INCREASE), 31/32 (INFLUENCE/DURATION) ·
+   EVERY HEXAGRAM'S INVERSE (FLIPPED UPSIDE-DOWN) SITS BESIDE IT IN THE KING WEN SEQUENCE</div>
+   <div style="margin-top:10px"><span class="btn" ${go('grid')}>ON TO THE 64 ▶</span> <span class="btn" ${go('home')}>MENU</span></div>`;
+}
+function learnLines(){
+  const lines=toss(); const kw=kwOf(lines);
+  const trans=kwOf(lines.map(v=>v===6?7:v===9?8:v));
+  const moving=lines.some(v=>v===6||v===9);
+  const lab=v=>v===6?'6 · OLD YIN ✕ → BECOMES YANG':v===7?'7 · YOUNG YANG (STABLE)':v===8?'8 · YOUNG YIN (STABLE)':'9 · OLD YANG ○ → BECOMES YIN';
+  learnEl.innerHTML=`<h2>II · LINES &amp; CHANGE</h2>
+   <div class="dim">THREE COINS: HEADS 3, TAILS 2. SUM 6/7/8/9 PER LINE, SIX LINES, BOTTOM FIRST.<br>
+   6 AND 9 ARE OLD LINES — FULLY RIPE, SO THEY FLIP. P(OLD)=25% PER LINE.<br>
+   OLD YIN ✕ (6) TURNS YANG; OLD YANG ○ (9) TURNS YIN. THE FLIPPED FIGURE IS WHERE THE STATE IS HEADING.</div>
+   <div style="margin-top:12px">LIVE THROW · ${glyph(kw)} ${kw}${moving?` → ${glyph(trans)} ${trans}`:''}</div>
+   <div style="font-size:12px; line-height:1.9">${lines.map((v,i)=>`LINE ${i+1} — ${lab(v)}`).join('<br>')}</div>
+   <div style="margin-top:12px"><span class="btn" ${go('lines')}>⟳ THROW AGAIN</span>
+   <span class="btn" ${go('grid')}>ON TO THE 64 ▶</span> <span class="btn" ${go('home')}>MENU</span></div>`;
+}
+function learnGrid(){
+  learnEl.innerHTML=`<h2>III · THE SIXTY-FOUR · KING WEN ORDER</h2>
+   <div class="hexgrid">${Array.from({length:64},(_,i)=>`<span ${go('hex',i+1)} title="${i+1}">${glyph(i+1)}</span>`).join('')}</div>
+   <div class="dim" style="margin-top:10px; font-size:11px">SELECT A HEXAGRAM</div>
+   <div style="margin-top:8px"><span class="btn" ${go('home')}>MENU</span></div>`;
+}
+function learnHex(kw){
+  const b=BITS_OF[kw], u=TRIG_BY_B[b>>3], l=TRIG_BY_B[b&7], t=HEXT[kw];
+  learnEl.innerHTML=`<h2>${kw} · ${NAMES[kw]}</h2>
+   <div style="display:flex; gap:26px; align-items:center; flex-wrap:wrap">
+   <div class="big" style="font-size:54px">${glyph(kw)}</div>
+   <div class="dim">${u.g} ${u.en} ABOVE<br>${l.g} ${l.en} BELOW</div></div>
+   <div style="max-width:56ch; line-height:1.9; margin-top:10px">${MEAN[kw]}</div>
+   <div style="max-width:56ch; margin-top:8px"><span class="dim" style="font-size:11px">JUDGMENT · </span>${t.j}</div>
+   <div class="dim" style="font-size:11px; margin-top:10px">THE CHANGING LINES (BOTTOM FIRST — EACH SPEAKS ONLY WHEN IT MOVES)</div>
+   <div style="max-width:60ch; font-size:12px; line-height:2">${t.l.map((s,i)=>
+     `<span class="dim">${kw}.${i+1}</span> ${s}`).join('<br>')}</div>
+   <div class="dim" style="font-size:11px; margin-top:8px">OUTER: ${u.attr} · INNER: ${l.attr}</div>
+   <div style="margin-top:14px">
+   ${kw>1?`<span class="btn" ${go('hex',kw-1)}>◀ ${kw-1}</span>`:''}
+   ${kw<64?`<span class="btn" ${go('hex',kw+1)}>${kw+1} ▶</span>`:''}
+   <span class="btn" ${go('grid')}>GRID</span> <span class="btn" ${go('pat')}>PATTERNS</span> <span class="btn" ${go('home')}>MENU</span></div>`;
+}
+function learnDrill(){
+  const kind=bit();  // 0: trigram, 1: hexagram
+  let answer, promptHtml, pool;
+  if(kind===0){ const t=TRI[(bit()<<2|bit()<<1|bit())&7]; answer=t.en;
+    promptHtml=`<div class="big" style="font-size:54px">${t.g}</div><div class="dim">NAME THIS TRIGRAM</div>`;
+    pool=TRI.map(x=>x.en);
+  } else { let k=0; do{k=(bit()<<5)|(bit()<<4)|(bit()<<3)|(bit()<<2)|(bit()<<1)|bit();}while(k>=64); k++;
+    answer=NAMES[k];
+    promptHtml=`<div class="big" style="font-size:54px">${glyph(k)}</div><div class="dim">NAME THIS HEXAGRAM (${k})</div>`;
+    pool=NAMES.slice(1);
+  }
+  const opts=new Set([answer]);
+  while(opts.size<4) opts.add(pool[(Math.random()*pool.length)|0]);
+  const shuffled=[...opts].sort(()=>Math.random()-.5);
+  learnEl.innerHTML=`<h2>IV · DRILL</h2>${promptHtml}
+   <div style="margin-top:12px; line-height:2.6">${shuffled.map(o=>
+     `<span class="btn" data-ans="${o===answer?1:0}">${o}</span>`).join('<br>')}</div>
+   <div id="drillR" style="margin-top:10px; min-height:24px"></div>
+   <div style="margin-top:6px"><span class="btn" ${go('drill')}>NEXT ▶</span> <span class="btn" ${go('home')}>MENU</span></div>`;
+}
+learnEl.addEventListener('click',e=>{
+  const a=e.target.closest('[data-ans]');
+  if(a){ const ok=a.dataset.ans==='1';
+    document.getElementById('drillR').innerHTML=ok?'<span style="color:#ffe9b0">CORRECT</span>':
+      `<span style="color:#ff6a3c">NO — MARKED IN CREAM</span>`;
+    if(!ok) learnEl.querySelectorAll('[data-ans="1"]').forEach(el=>el.style.color='#ffe9b0');
+    return; }
+  const g=e.target.closest('[data-go]'); if(!g) return;
+  const x=+g.dataset.x;
+  ({home:learnHome, lines:learnLines, grid:learnGrid, drill:learnDrill,
+    tritab:learnTriTable, pat:learnPatterns,
+    tri:()=>learnTri(x), hex:()=>learnHex(x)})[g.dataset.go]();
+});
+$('btnLearn').onclick=()=>{
+  learnOpen=!learnOpen;
+  if(learnOpen){ if(lab) labStop(); hold(); $('btnHold').classList.remove('down');
+    summaryEl.classList.remove('on'); learnHome(); learnEl.classList.add('on');
+    $('btnLearn').classList.add('down'); ticker.textContent='LEARN · TEACHING MACHINE';
+  } else { learnEl.classList.remove('on'); $('btnLearn').classList.remove('down');
+    ticker.textContent='STANDBY · PRESS CAST TO OPEN THE FIELD'; }
+};
+
+addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(e.key===' '){ e.preventDefault(); running?hold():start(); }
+});
+})();
+</script>
