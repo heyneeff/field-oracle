@@ -1,0 +1,474 @@
+<title>FIELD ORACLE FO-64</title>
+<style>
+  :root{
+    --room:#171310;
+    --chassis:#cbc1a9; --chassis-hi:#e6ddc6; --chassis-lo:#6e6350; --chassis-deep:#4a4236;
+    --screen:#140f07; --phos:#ffb000; --phos-dim:#8a6420; --phos-faint:#4d3812;
+    --led-red:#d6452b; --led-red-off:#4d2a22; --led-amb:#ffb000; --led-amb-off:#4d3a17;
+    --ink:#3a342a;
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;
+  }
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--room);
+    background-image:radial-gradient(ellipse 90% 70% at 50% 20%, #241d16 0%, var(--room) 70%);
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); padding:28px 14px; box-sizing:border-box;
+  }
+  .console{
+    background:linear-gradient(175deg,var(--chassis-hi) 0%,var(--chassis) 30%,#b5aa90 100%);
+    border-radius:14px; padding:22px 24px 18px;
+    box-shadow:0 2px 0 var(--chassis-hi) inset, 0 -3px 0 var(--chassis-lo) inset,
+      0 24px 60px rgba(0,0,0,.65), 0 4px 12px rgba(0,0,0,.5);
+    width:min(880px,100%); box-sizing:border-box;
+  }
+  /* silkscreen legends */
+  .legend{
+    font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--ink);
+    text-shadow:0 1px 0 rgba(255,255,255,.5); font-weight:700;
+  }
+  .nameplate{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; gap:12px; flex-wrap:wrap}
+  .nameplate .brand{font-size:17px; letter-spacing:.34em; font-weight:800; color:var(--ink);
+    text-shadow:0 1px 0 rgba(255,255,255,.55)}
+  .nameplate .brand small{font-weight:400; letter-spacing:.22em; font-size:10px; color:#5d543f}
+  .stripes{flex:1; height:8px; min-width:60px;
+    background:repeating-linear-gradient(90deg,#b4482f 0 5px,transparent 5px 9px,#c07a2c 9px 14px,transparent 14px 18px,#8a8a45 18px 23px,transparent 23px 40px);
+    opacity:.85; border-radius:2px}
+  .deck{display:grid; grid-template-columns:1fr 236px; gap:18px}
+  @media(max-width:760px){ .deck{grid-template-columns:1fr} }
+
+  /* ---------- CRT ---------- */
+  .crt-bezel{
+    background:linear-gradient(180deg,#5d5342,#3f3830);
+    border-radius:12px; padding:12px;
+    box-shadow:0 1px 0 rgba(255,255,255,.25) inset, 0 -2px 6px rgba(0,0,0,.6) inset, 0 1px 0 var(--chassis-hi);
+  }
+  .crt{
+    position:relative; background:var(--screen); border-radius:8px; height:440px;
+    overflow:hidden;
+    box-shadow:0 0 40px rgba(0,0,0,.9) inset, 0 0 4px rgba(255,176,0,.12) inset;
+  }
+  .crt::after{ /* scanlines + vignette */
+    content:""; position:absolute; inset:0; pointer-events:none; border-radius:8px;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px),
+      radial-gradient(ellipse 120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,.55) 100%);
+  }
+  .crt::before{ /* glass glare */
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:2; border-radius:8px;
+    background:linear-gradient(115deg, rgba(255,255,255,.06) 0%, transparent 22%);
+  }
+  #rain{position:absolute; inset:0; width:100%; height:100%; border-radius:8px; display:none}
+  .crt.rain-view #rain{display:block}
+  .crt.rain-view .feed{display:none}
+  .feed{
+    position:absolute; inset:0; padding:14px 16px 34px; overflow:hidden;
+    display:flex; flex-direction:column; justify-content:flex-end;
+    color:var(--phos); font-size:14px; line-height:1.75;
+    text-shadow:0 0 6px rgba(255,176,0,.55);
+  }
+  .row{white-space:pre; display:flex; gap:0; align-items:baseline}
+  .row .g{font-size:17px; margin-right:8px}
+  .row .num{color:var(--phos); width:2.4ch; text-align:right; margin-right:10px}
+  .row .mv{letter-spacing:.14em; margin-right:10px; color:var(--phos-dim)}
+  .row .mv b{color:var(--phos); font-weight:400; text-shadow:0 0 8px rgba(255,176,0,.9)}
+  .row .arrow{color:var(--phos-dim); margin-right:10px; width:9ch}
+  .row .arrow b{color:var(--phos); font-weight:400}
+  .row .flag{color:var(--led-red); text-shadow:0 0 6px rgba(214,69,43,.7); font-size:11px; letter-spacing:.08em}
+  .row.weather{color:var(--phos-dim); font-size:11px; letter-spacing:.12em; text-shadow:none; margin:3px 0}
+  .row.fresh{animation:strike .35s steps(2) 1}
+  @keyframes strike{from{color:#fff; text-shadow:0 0 14px rgba(255,220,140,.9)} }
+  .ticker{
+    position:absolute; left:0; right:0; bottom:0; z-index:1;
+    background:rgba(20,15,7,.92); border-top:1px solid var(--phos-faint);
+    color:var(--phos-dim); font-size:11px; letter-spacing:.14em; padding:5px 16px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .ticker b{color:var(--phos); font-weight:400}
+  /* summary screen */
+  .summary{
+    position:absolute; inset:0; z-index:1; background:var(--screen);
+    color:var(--phos); padding:26px 30px; font-size:14px; line-height:2;
+    text-shadow:0 0 6px rgba(255,176,0,.5); display:none; overflow:auto; box-sizing:border-box;
+  }
+  .summary.on{display:block}
+  .summary h2{font-size:13px; letter-spacing:.3em; font-weight:400; border-bottom:1px solid var(--phos-faint);
+    padding-bottom:8px; margin:0 0 14px}
+  .summary .dim{color:var(--phos-dim)}
+  .summary .big{font-size:26px; line-height:1.3}
+  .summary table{border-collapse:collapse; font-variant-numeric:tabular-nums}
+  .summary td{padding:2px 18px 2px 0}
+
+  /* ---------- right rail ---------- */
+  .rail{display:flex; flex-direction:column; gap:14px}
+  .meter-block{
+    background:linear-gradient(180deg,#dcd3ba,#c3b89e); border-radius:8px; padding:10px 10px 8px;
+    box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 -1px 0 rgba(0,0,0,.15) inset, 0 1px 3px rgba(0,0,0,.25);
+  }
+  .meter-face{
+    background:#f2ecd8; border-radius:5px; height:74px; position:relative; overflow:hidden;
+    box-shadow:0 2px 5px rgba(0,0,0,.35) inset; margin-bottom:6px;
+  }
+  .meter-face canvas{position:absolute; inset:0; width:100%; height:100%}
+  .meter-cap{display:flex; justify-content:space-between; align-items:baseline}
+  .meter-cap .val{font-size:11px; color:var(--ink); font-variant-numeric:tabular-nums}
+  /* now playing */
+  .now{
+    background:var(--screen); border-radius:6px; padding:10px 12px; text-align:center;
+    box-shadow:0 0 14px rgba(0,0,0,.8) inset; color:var(--phos);
+    text-shadow:0 0 8px rgba(255,176,0,.6);
+  }
+  .now .glyph{font-size:44px; line-height:1.1}
+  .now .name{font-size:11px; letter-spacing:.18em; color:var(--phos-dim); margin-top:2px; min-height:14px}
+  /* LEDs */
+  .leds{display:grid; grid-template-columns:1fr 1fr; gap:8px 10px}
+  .led{display:flex; align-items:center; gap:7px}
+  .led i{
+    width:11px; height:11px; border-radius:50%; flex:none;
+    background:var(--led-red-off); box-shadow:0 1px 1px rgba(0,0,0,.4) inset;
+    transition:background .12s, box-shadow .12s;
+  }
+  .led.amber i{background:var(--led-amb-off)}
+  .led.on i{background:var(--led-red); box-shadow:0 0 8px rgba(214,69,43,.9), 0 0 2px #fff inset}
+  .led.amber.on i{background:var(--led-amb); box-shadow:0 0 8px rgba(255,176,0,.9), 0 0 2px #fff inset}
+  .led span{font-size:9px; letter-spacing:.16em; color:var(--ink); font-weight:700; text-shadow:0 1px 0 rgba(255,255,255,.5)}
+  /* counter */
+  .odometer{
+    background:var(--screen); color:var(--phos); border-radius:5px; text-align:right;
+    font-size:18px; padding:6px 12px; letter-spacing:.2em; font-variant-numeric:tabular-nums;
+    box-shadow:0 0 10px rgba(0,0,0,.8) inset; text-shadow:0 0 7px rgba(255,176,0,.6);
+  }
+
+  /* ---------- transport ---------- */
+  .transport{
+    display:flex; align-items:center; gap:14px; margin-top:18px; flex-wrap:wrap;
+    border-top:2px solid rgba(0,0,0,.12); padding-top:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.45);
+  }
+  .keybank{display:flex; gap:2px}
+  button.key{
+    font-family:var(--mono); font-size:10px; letter-spacing:.14em; font-weight:700;
+    color:var(--ink); text-shadow:0 1px 0 rgba(255,255,255,.5);
+    background:linear-gradient(180deg,#e8dfc8,#c8bda2);
+    border:1px solid #8f8468; border-radius:3px; padding:12px 16px 10px; cursor:pointer;
+    box-shadow:0 3px 0 #8f8468, 0 1px 0 rgba(255,255,255,.7) inset;
+    transition:transform .05s, box-shadow .05s;
+  }
+  button.key:active, button.key.down{transform:translateY(3px); box-shadow:0 0 0 #8f8468, 0 1px 0 rgba(255,255,255,.5) inset}
+  button.key:focus-visible{outline:2px solid var(--led-red); outline-offset:2px}
+  button.key.rec{color:#7d2314}
+  .speed{display:flex; align-items:center; gap:8px}
+  .speed input[type=range]{width:110px; accent-color:var(--led-red)}
+  .qwrap{flex:1; min-width:160px; display:flex; align-items:center; gap:8px}
+  .qwrap input{
+    flex:1; font-family:var(--mono); font-size:12px; color:var(--phos);
+    background:var(--screen); border:none; border-radius:4px; padding:9px 12px;
+    box-shadow:0 0 8px rgba(0,0,0,.7) inset; text-shadow:0 0 5px rgba(255,176,0,.5);
+  }
+  .qwrap input::placeholder{color:var(--phos-faint)}
+  .qwrap input:focus{outline:1px solid var(--phos-dim)}
+  .footnote{margin-top:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
+  .footnote .legend{font-weight:400; letter-spacing:.14em; color:#6b6149}
+  @media (prefers-reduced-motion:reduce){ .row.fresh{animation:none} }
+</style>
+
+<div class="console" role="application" aria-label="Field Oracle continuous I Ching console">
+  <div class="nameplate">
+    <div class="brand">FIELD ORACLE <small>MODEL FO-64 · CONTINUOUS CAST</small></div>
+    <div class="stripes"></div>
+  </div>
+
+  <div class="deck">
+    <div class="crt-bezel">
+      <div class="crt" id="crt">
+        <canvas id="rain" aria-hidden="true"></canvas>
+        <div class="feed" id="feed" aria-live="off"></div>
+        <div class="summary" id="summary"></div>
+        <div class="ticker" id="ticker">STANDBY · PRESS CAST TO OPEN THE FIELD</div>
+      </div>
+    </div>
+
+    <div class="rail">
+      <div class="now" id="now">
+        <div class="glyph" id="nowGlyph">䷀</div>
+        <div class="name" id="nowName">READY</div>
+      </div>
+
+      <div class="meter-block">
+        <div class="meter-face"><canvas id="tiltMeter"></canvas></div>
+        <div class="meter-cap"><span class="legend">Tilt · yin ⟷ yang</span><span class="val" id="tiltVal">50%</span></div>
+      </div>
+      <div class="meter-block">
+        <div class="meter-face"><canvas id="churnMeter"></canvas></div>
+        <div class="meter-cap"><span class="legend">Churn · moving</span><span class="val" id="churnVal">25%</span></div>
+      </div>
+
+      <div class="leds">
+        <div class="led" id="ledRecur"><i></i><span>RECUR</span></div>
+        <div class="led" id="ledHot"><i></i><span>HOT LINE</span></div>
+        <div class="led" id="ledRun"><i></i><span>TRI RUN</span></div>
+        <div class="led amber" id="ledCast"><i></i><span>CAST</span></div>
+      </div>
+
+      <div>
+        <div class="legend" style="margin-bottom:4px">Cast counter</div>
+        <div class="odometer" id="counter">000000</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="transport">
+    <div class="keybank">
+      <button class="key rec" id="btnCast">● CAST</button>
+      <button class="key" id="btnHold">‖ HOLD</button>
+      <button class="key" id="btnRead">■ READ FIELD</button>
+      <button class="key" id="btnClear">⏏ CLEAR</button>
+      <button class="key" id="btnRain">⋮ RAIN</button>
+    </div>
+    <div class="speed">
+      <span class="legend">Speed</span>
+      <input type="range" id="speed" min="0" max="100" value="42" aria-label="cast speed">
+    </div>
+    <div class="qwrap">
+      <span class="legend">Question</span>
+      <input id="question" type="text" placeholder="anchor the field…" spellcheck="false">
+    </div>
+  </div>
+  <div class="footnote">
+    <span class="legend">Three-coin method · King Wen sequence · baseline 25% moving</span>
+    <span class="legend">A contemplative instrument, not a statistical claim</span>
+  </div>
+</div>
+
+<script>
+(() => {
+const KING_WEN = [
+   2,24, 7,19,15,36,46,11, 16,51,40,54,62,55,32,34,
+   8, 3,29,60,39,63,48, 5, 45,17,47,58,31,49,28,43,
+  23,27, 4,41,52,22,18,26, 35,21,64,38,56,30,50,14,
+  20,42,59,61,53,37,57,44, 12,25, 6,10,33,13, 9, 1];
+const BITS_OF = {}; KING_WEN.forEach((kw,bits)=>BITS_OF[kw]=bits);
+const glyph = kw => String.fromCodePoint(0x4DC0 + kw - 1);
+const TRIGRAMS = {7:"HEAVEN",3:"LAKE",5:"FIRE",1:"THUNDER",6:"WIND",2:"WATER",4:"MOUNTAIN",0:"EARTH"};
+const NAMES = ["","THE CREATIVE","THE RECEPTIVE","DIFFICULTY AT THE BEGINNING","YOUTHFUL FOLLY","WAITING","CONFLICT","THE ARMY","HOLDING TOGETHER","THE TAMING POWER OF THE SMALL","TREADING","PEACE","STANDSTILL","FELLOWSHIP","POSSESSION IN GREAT MEASURE","MODESTY","ENTHUSIASM","FOLLOWING","WORK ON WHAT HAS BEEN SPOILED","APPROACH","CONTEMPLATION","BITING THROUGH","GRACE","SPLITTING APART","RETURN","INNOCENCE","THE TAMING POWER OF THE GREAT","THE CORNERS OF THE MOUTH","PREPONDERANCE OF THE GREAT","THE ABYSMAL","THE CLINGING","INFLUENCE","DURATION","RETREAT","THE POWER OF THE GREAT","PROGRESS","DARKENING OF THE LIGHT","THE FAMILY","OPPOSITION","OBSTRUCTION","DELIVERANCE","DECREASE","INCREASE","BREAKTHROUGH","COMING TO MEET","GATHERING TOGETHER","PUSHING UPWARD","OPPRESSION","THE WELL","REVOLUTION","THE CAULDRON","THE AROUSING","KEEPING STILL","DEVELOPMENT","THE MARRYING MAIDEN","ABUNDANCE","THE WANDERER","THE GENTLE","THE JOYOUS","DISPERSION","LIMITATION","INNER TRUTH","PREPONDERANCE OF THE SMALL","AFTER COMPLETION","BEFORE COMPLETION"];
+
+const $ = id => document.getElementById(id);
+const feed=$('feed'), ticker=$('ticker'), summaryEl=$('summary');
+
+// ---- state ----
+let running=false, timer=null, n=0;
+let emaYang=.5, emaMove=.25, needleTilt=.5, needleChurn=.25;
+let win=[], lineRun=[0,0,0,0,0,0], upperRun=0, lastUpper=null;
+let allPrimary={}, allTrans={}, hotTotals=[0,0,0,0,0,0];
+const WINDOW=32, WEATHER=16, MAXROWS=200;
+
+function toss(){ let l=[]; for(let i=0;i<6;i++){ let s=0; for(let c=0;c<3;c++) s+=2+(Math.random()<.5?0:1); l.push(s);} return l; }
+const kwOf = lines => KING_WEN[lines.reduce((b,v,i)=>b|((v%2)<<i),0)];
+
+function cast(){
+  const lines=toss();
+  const kw=kwOf(lines);
+  const moving=lines.map((v,i)=>v===6||v===9?i:-1).filter(i=>i>=0);
+  const trans=kwOf(lines.map(v=>v===6?7:v===9?8:v));
+  const yang=lines.filter(v=>v%2).length/6;
+  const upper=BITS_OF[kw]>>3;
+
+  n++; emaYang+=.1*(yang-emaYang); emaMove+=.1*(moving.length/6-emaMove);
+  allPrimary[kw]=(allPrimary[kw]||0)+1; allTrans[trans]=(allTrans[trans]||0)+1;
+  for(let i=0;i<6;i++){ lineRun[i]=moving.includes(i)?lineRun[i]+1:0; }
+  moving.forEach(i=>hotTotals[i]++);
+  upperRun = upper===lastUpper ? upperRun+1 : 1; lastUpper=upper;
+
+  // flags
+  const recur=win.filter(k=>k===kw).length;
+  const hot=lineRun.map((r,i)=>r>=3?i+1:0).filter(Boolean);
+  const run=upperRun>=4;
+  win.push(kw); if(win.length>WINDOW) win.shift();
+  const flags=[];
+  if(recur>=1) flags.push(`RECUR ×${recur+1}`);
+  if(hot.length) flags.push(`HOT L${hot.join(',')}`);
+  if(run) flags.push(`${TRIGRAMS[upper]} ×${upperRun}`);
+
+  led('ledRecur',recur>=1); led('ledHot',hot.length>0); led('ledRun',run);
+  gridPush(kw);
+
+  // row
+  const row=document.createElement('div'); row.className='row fresh';
+  const mv=lines.map((v,i)=>moving.includes(i)?'<b>●</b>':'·').join('');
+  const arrow = moving.length ? `→ <b>${glyph(trans)} ${String(trans).padStart(2)}</b>` : '&nbsp;';
+  row.innerHTML=`<span class="num">${kw}</span>`+
+    `<span class="mv">${mv}</span><span class="arrow">${moving.length?`→ <b>${String(trans).padStart(2)}</b>`:'&nbsp;'}</span>`+
+    (flags.length?`<span class="flag">⚑ ${flags.join(' · ')}</span>`:'');
+  feed.appendChild(row);
+
+  if(n%WEATHER===0){
+    const w=document.createElement('div'); w.className='row weather';
+    const counts={}; win.forEach(k=>counts[k]=(counts[k]||0)+1);
+    const [mk,mc]=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+    const churnW = emaMove>.30?'HOT':emaMove<.20?'COLD':'STEADY';
+    w.textContent=`── WEATHER @${n} · TILT ${emaYang>.5?'YANG':'YIN'} ${Math.abs(emaYang-.5)*200|0}% · CHURN ${churnW} ${Math.round(emaMove*100)}% · MODE ${glyph(+mk)} ${mk}×${mc} ──`;
+    feed.appendChild(w);
+  }
+  while(feed.children.length>MAXROWS) feed.removeChild(feed.firstChild);
+
+  $('nowGlyph').textContent=glyph(kw);
+  $('nowName').textContent=`${kw} · ${NAMES[kw]}`;
+  $('counter').textContent=String(n).padStart(6,'0');
+  $('tiltVal').textContent=Math.round(emaYang*100)+'%';
+  $('churnVal').textContent=Math.round(emaMove*100)+'%';
+  ticker.innerHTML=`CASTING · <b>${glyph(kw)} ${kw} ${NAMES[kw]}</b>`+
+    (moving.length?` → <b>${trans} ${NAMES[trans]}</b> · LINES ${moving.map(i=>i+1).join(' ')}`:' · NO MOVING LINES');
+}
+
+function led(id,on){ $(id).classList.toggle('on',!!on); }
+
+// ---- meters (canvas, drawn as analog VU faces) ----
+function setupMeter(cv){ const r=devicePixelRatio||1; const w=cv.clientWidth,h=cv.clientHeight;
+  cv.width=w*r; cv.height=h*r; const g=cv.getContext('2d'); g.scale(r,r); return {g,w,h}; }
+function drawMeter(cv,frac,lo,hi,center,labels){
+  const {g,w,h}=setupMeter(cv);
+  g.clearRect(0,0,w,h);
+  const cx=w/2, cy=h*1.55, R=h*1.28;
+  const a0=-Math.PI*.78, a1=-Math.PI*.22;
+  // arc + ticks
+  g.strokeStyle='#8a7f68'; g.lineWidth=1;
+  g.beginPath(); g.arc(cx,cy,R,a0,a1); g.stroke();
+  g.fillStyle='#6b6149'; g.font='7px '+getComputedStyle(document.body).fontFamily;
+  g.textAlign='center';
+  for(let i=0;i<=10;i++){
+    const a=a0+(a1-a0)*i/10, big=i%5===0;
+    const r1=R, r2=R-(big?7:4);
+    g.beginPath(); g.moveTo(cx+Math.cos(a)*r1, cy+Math.sin(a)*r1);
+    g.lineTo(cx+Math.cos(a)*r2, cy+Math.sin(a)*r2); g.stroke();
+    if(big && labels[i/5]!==undefined)
+      g.fillText(labels[i/5], cx+Math.cos(a)*(R-14), cy+Math.sin(a)*(R-14)+2);
+  }
+  // red zones at both ends (tension zones)
+  g.strokeStyle='rgba(180,72,47,.85)'; g.lineWidth=3;
+  g.beginPath(); g.arc(cx,cy,R+3,a0,a0+(a1-a0)*.14); g.stroke();
+  g.beginPath(); g.arc(cx,cy,R+3,a1-(a1-a0)*.14,a1); g.stroke();
+  // center pip
+  if(center!==null){ const ac=a0+(a1-a0)*(center-lo)/(hi-lo);
+    g.strokeStyle='#6b6149'; g.lineWidth=1.5;
+    g.beginPath(); g.moveTo(cx+Math.cos(ac)*(R+2), cy+Math.sin(ac)*(R+2));
+    g.lineTo(cx+Math.cos(ac)*(R+8), cy+Math.sin(ac)*(R+8)); g.stroke(); }
+  // needle
+  const t=Math.min(Math.max((frac-lo)/(hi-lo),0),1);
+  const a=a0+(a1-a0)*t;
+  g.strokeStyle='#2b2013'; g.lineWidth=2; g.lineCap='round';
+  g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+Math.cos(a)*(R-4), cy+Math.sin(a)*(R-4)); g.stroke();
+  g.fillStyle='#2b2013'; g.beginPath(); g.arc(cx,cy-h*.5,3.5,0,7); // hub hidden below face edge
+}
+function meters(){
+  needleTilt += (emaYang-needleTilt)*.15;
+  needleChurn += (emaMove-needleChurn)*.15;
+  drawMeter($('tiltMeter'), needleTilt, .2,.8,.5, ['YIN','·','YANG']);
+  drawMeter($('churnMeter'), needleChurn, 0,.5,.25, ['0','25','50']);
+  requestAnimationFrame(meters);
+}
+requestAnimationFrame(meters);
+addEventListener('resize',()=>{}); // canvas re-measured every frame via clientWidth
+
+// ---- hexagram rain: a grid of pure glyphs. Each cast fills the top row
+// left-to-right; a full row pushes the field down. No trails, no numbers.
+// Cells re-color live from window coherence: when a hexagram recurs beyond
+// chance, every instance of it on screen lights up.
+let rainView=false, gridRows=[], curRow=[];
+const rainCv=$('rain'), rg=rainCv.getContext('2d');
+const CELL_W=42, CELL_H=46, PAD=16;
+function sizeRain(){
+  const r=devicePixelRatio||1, w=rainCv.clientWidth, h=rainCv.clientHeight;
+  if(rainCv.width!==w*r||rainCv.height!==h*r){
+    rainCv.width=w*r; rainCv.height=h*r; rg.setTransform(r,0,0,r,0,0);
+  }
+  return {w,h};
+}
+function gridCols(){ return Math.max(1,Math.floor((rainCv.clientWidth-PAD*2)/CELL_W)); }
+function gridPush(kw){
+  curRow.push(kw);
+  if(curRow.length>=gridCols()){
+    gridRows.unshift(curRow); curRow=[];
+    if(gridRows.length>30) gridRows.pop();
+  }
+  if(rainView) drawGrid();
+}
+function drawGrid(){
+  const {w,h}=sizeRain();
+  rg.fillStyle='#140f07'; rg.fillRect(0,0,w,h);
+  rg.textAlign='center'; rg.textBaseline='middle';
+  rg.font='30px '+getComputedStyle(document.body).fontFamily;
+  // coherence per hexagram from the rolling window (baseline = win.length/64)
+  const counts={}; win.forEach(k=>counts[k]=(counts[k]||0)+1);
+  const rows=[curRow,...gridRows];
+  const maxRows=Math.ceil((h-40)/CELL_H);
+  for(let r=0;r<rows.length&&r<maxRows;r++){
+    const y=PAD+18+r*CELL_H;
+    for(let c=0;c<rows[r].length;c++){
+      const kw=rows[r][c], x=PAD+c*CELL_W+CELL_W/2;
+      const hits=counts[kw]||0;
+      if(hits>=4){        // strong coherence — the pattern burning through
+        rg.fillStyle='#ff6a3c'; rg.shadowColor='#ff5030'; rg.shadowBlur=14;
+      } else if(hits>=3){ // coherence emerging
+        rg.fillStyle='#ffe9b0'; rg.shadowColor='#ffd070'; rg.shadowBlur=10;
+      } else {            // background field
+        rg.fillStyle='rgba(255,176,0,0.5)'; rg.shadowBlur=0;
+      }
+      rg.fillText(String.fromCodePoint(0x4DC0+kw-1), x, y);
+    }
+    rg.shadowBlur=0;
+  }
+  rg.textBaseline='alphabetic';
+}
+function setRainView(on){
+  rainView=on;
+  $('crt').classList.toggle('rain-view',on);
+  $('btnRain').classList.toggle('down',on);
+  if(on) drawGrid();
+}
+$('btnRain').onclick=()=>setRainView(!rainView);
+addEventListener('resize',()=>{ if(rainView) drawGrid(); });
+
+// ---- transport ----
+function interval(){ const v=+$('speed').value; return 1500 - v*14.5; } // 1500ms .. 50ms
+function loop(){ if(!running) return; cast(); timer=setTimeout(loop, interval()); }
+function start(){ if(running) return; running=true; summaryEl.classList.remove('on');
+  led('ledCast',true); $('btnCast').classList.add('down'); $('btnHold').classList.remove('down'); loop(); }
+function hold(){ running=false; clearTimeout(timer); led('ledCast',false);
+  $('btnCast').classList.remove('down'); $('btnHold').classList.add('down');
+  ticker.innerHTML='HOLD · FIELD PAUSED AT CAST '+n; }
+$('btnCast').onclick=start;
+$('btnHold').onclick=hold;
+$('btnClear').onclick=()=>{ hold(); $('btnHold').classList.remove('down');
+  n=0; emaYang=.5; emaMove=.25; win=[]; lineRun=[0,0,0,0,0,0]; upperRun=0; lastUpper=null;
+  allPrimary={}; allTrans={}; hotTotals=[0,0,0,0,0,0];
+  gridRows=[]; curRow=[]; if(rainView) drawGrid();
+  feed.innerHTML=''; summaryEl.classList.remove('on');
+  $('counter').textContent='000000'; $('tiltVal').textContent='50%'; $('churnVal').textContent='25%';
+  $('nowGlyph').textContent='䷀'; $('nowName').textContent='READY';
+  ['ledRecur','ledHot','ledRun'].forEach(i=>led(i,false));
+  ticker.textContent='STANDBY · PRESS CAST TO OPEN THE FIELD'; };
+$('btnRead').onclick=()=>{
+  if(!n){ ticker.textContent='NO FIELD YET · PRESS CAST FIRST'; return; }
+  hold(); $('btnHold').classList.remove('down');
+  const base=n/64;
+  const top=Object.entries(allPrimary).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const [tk,tc]=Object.entries(allTrans).sort((a,b)=>b[1]-a[1])[0];
+  const hotLine=hotTotals.indexOf(Math.max(...hotTotals));
+  const q=$('question').value.trim();
+  summaryEl.innerHTML=
+    `<h2>FIELD SUMMARY · ${n} CASTS${q?' · “'+q.replace(/</g,'&lt;').toUpperCase()+'”':''}</h2>`+
+    `<div class="big">${top.map(([k])=>glyph(+k)).join(' ')}</div>`+
+    `<table>${top.map(([k,c])=>`<tr><td>PRIMARY ${glyph(+k)} ${k} ${NAMES[k]}</td><td>×${c}</td><td class="dim">${(c/base).toFixed(1)}× BASELINE</td></tr>`).join('')}`+
+    `<tr><td>FLOWING → ${glyph(+tk)} ${tk} ${NAMES[tk]}</td><td>×${tc}</td><td class="dim">${(tc/base).toFixed(1)}× BASELINE</td></tr></table>`+
+    `<div style="margin-top:12px">TILT ${emaYang>.5?'YANG':'YIN'} ${Math.abs(emaYang-.5)*200|0}%`+
+    ` <span class="dim">·</span> CHURN ${Math.round(emaMove*100)}% <span class="dim">(BASELINE 25%)</span></div>`+
+    `<div>HOTTEST THREAD · LINE ${hotLine+1} MOVED ${hotTotals[hotLine]}× <span class="dim">(${Math.round(hotTotals[hotLine]/n*100)}%, BASELINE 25%)</span></div>`+
+    `<div class="dim" style="margin-top:14px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RESUME · CLEAR TO ERASE THE TAPE</div>`;
+  summaryEl.classList.add('on');
+  ticker.textContent='READ · FIELD SUMMARY ON SCREEN';
+};
+addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(e.key===' '){ e.preventDefault(); running?hold():start(); }
+});
+})();
+</script>

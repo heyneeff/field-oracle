@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+# I Ching cascade — continuous three-coin casts as a scrolling field.
+# Companion to /usr/local/bin/iching (one point) and iching-field (ensemble):
+# this one reads the field as a TIME SERIES — tilt, churn, recurrence, runs.
+#
+# Usage: iching-cascade [--interval 0.6] [--window 32] [--weather 16] [question]
+# Ctrl-C ends the session and prints the field summary.
+
+import random, sys, os, time, datetime, argparse, signal
+from collections import Counter, deque
+
+KING_WEN = [
+    2,24, 7,19,15,36,46,11,
+   16,51,40,54,62,55,32,34,
+    8, 3,29,60,39,63,48, 5,
+   45,17,47,58,31,49,28,43,
+   23,27, 4,41,52,22,18,26,
+   35,21,64,38,56,30,50,14,
+   20,42,59,61,53,37,57,44,
+   12,25, 6,10,33,13, 9, 1,
+]
+GLYPH_OF = {}   # king wen number -> unicode hexagram
+BITS_OF = {}    # king wen number -> 6-bit pattern
+for bits, kw in enumerate(KING_WEN):
+    GLYPH_OF[kw] = chr(0x4DC0 + kw - 1)
+    BITS_OF[kw] = bits
+
+TRIGRAMS = {7:"Heaven",3:"Lake",5:"Fire",1:"Thunder",6:"Wind",2:"Water",4:"Mountain",0:"Earth"}
+SPARK = "▁▂▃▄▅▆▇█"
+LOG = os.path.expanduser("~/.iching_cascade_log")
+
+def toss():
+    return [sum(random.choice([2,3]) for _ in range(3)) for _ in range(6)]
+
+def kw_of(lines):
+    bits = sum((1 if v % 2 else 0) << i for i, v in enumerate(lines))
+    return KING_WEN[bits]
+
+def spark(vals, lo=0.0, hi=1.0):
+    out = []
+    for v in vals:
+        t = min(max((v - lo) / (hi - lo), 0.0), 1.0)
+        out.append(SPARK[int(t * (len(SPARK) - 1))])
+    return "".join(out)
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("question", nargs="*", help="anchor question (optional)")
+    p.add_argument("--interval", type=float, default=0.6, help="seconds between casts")
+    p.add_argument("--window", type=int, default=32, help="recurrence/stat window")
+    p.add_argument("--weather", type=int, default=16, help="casts between weather lines")
+    p.add_argument("--n", type=int, default=0, help="stop after N casts (0 = until Ctrl-C)")
+    args = p.parse_args()
+    question = " ".join(args.question)
+
+    ema_yang = 0.5          # tilt (EMA of yang fraction, alpha 0.1)
+    ema_move = 0.25         # churn (EMA of moving-line rate)
+    tilt_hist = deque(maxlen=48)
+    win = deque(maxlen=args.window)        # recent primary hexagrams
+    line_run = [0]*6                        # consecutive casts each line moving
+    upper_run, last_upper = 0, None
+    all_primary, all_trans = Counter(), Counter()
+    hot_lines_total = Counter()
+    n = 0
+    t0 = datetime.datetime.now()
+
+    def _term(sig, frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, _term)
+
+    print(f"⋯ cascade begins{('  ·  ' + question) if question else ''}   (Ctrl-C to read the field)\n")
+    try:
+        while args.n == 0 or n < args.n:
+            lines = toss()
+            kw = kw_of(lines)
+            moving = [i for i, v in enumerate(lines) if v in (6, 9)]
+            trans = kw_of([7 if v == 6 else 8 if v == 9 else v for v in lines])
+            yang = sum(1 for v in lines if v % 2) / 6
+            upper = BITS_OF[kw] >> 3
+
+            n += 1
+            ema_yang += 0.1 * (yang - ema_yang)
+            ema_move += 0.1 * (len(moving)/6 - ema_move)
+            tilt_hist.append(ema_yang)
+            all_primary[kw] += 1
+            all_trans[trans] += 1
+            for i in range(6):
+                line_run[i] = line_run[i] + 1 if i in moving else 0
+            for i in moving:
+                hot_lines_total[i+1] += 1
+            upper_run = upper_run + 1 if upper == last_upper else 1
+            last_upper = upper
+
+            # flags: structure the stream is showing right now
+            flags = []
+            recur = win.count(kw)
+            if recur >= 1:
+                flags.append(f"recur ×{recur+1}/{len(win)+1}")
+            hot = [str(i+1) for i in range(6) if line_run[i] >= 3]
+            if hot:
+                flags.append("hot line " + ",".join(hot))
+            if upper_run >= 4:
+                flags.append(f"{TRIGRAMS[upper]} run ×{upper_run}")
+            win.append(kw)
+
+            arrow = f" → {GLYPH_OF[trans]} {trans:2d}" if moving else "        "
+            mv = "".join("●" if i in moving else "·" for i in range(6))
+            flagstr = ("   ⚑ " + "; ".join(flags)) if flags else ""
+            print(f"  {GLYPH_OF[kw]} {kw:2d} {mv}{arrow}   {spark(tilt_hist, 0.3, 0.7)}{flagstr}")
+
+            if n % args.weather == 0:
+                tilt = "yang" if ema_yang > 0.5 else "yin"
+                churn = "hot" if ema_move > 0.30 else "cold" if ema_move < 0.20 else "steady"
+                top, c = Counter(win).most_common(1)[0]
+                print(f"  ─── weather @ {n}: tilt {tilt} {abs(ema_yang-0.5)*200:.0f}%  ·  churn {churn} ({ema_move*100:.0f}% moving)  ·  window mode {GLYPH_OF[top]} {top} ×{c} ───")
+
+            time.sleep(args.interval)
+    except KeyboardInterrupt:
+        pass
+
+    if n == 0:
+        return
+    print(f"\n═══ field summary · {n} casts ═══")
+    base = n / 64
+    for kw, c in all_primary.most_common(3):
+        print(f"  primary   {GLYPH_OF[kw]} {kw:2d}  ×{c}  ({c/base:.1f}× baseline)")
+    tkw, tc = all_trans.most_common(1)[0]
+    print(f"  flowing → {GLYPH_OF[tkw]} {tkw:2d}  ×{tc}  ({tc/base:.1f}× baseline)")
+    print(f"  final tilt: {'yang' if ema_yang>0.5 else 'yin'} {abs(ema_yang-0.5)*200:.0f}%  ·  churn ended {ema_move*100:.0f}% (baseline 25%)")
+    if hot_lines_total:
+        ln, lc = hot_lines_total.most_common(1)[0]
+        print(f"  hottest thread: line {ln}  moved {lc}× ({lc/n*100:.0f}%, baseline 25%)")
+    ts = t0.strftime("%Y-%m-%d %H:%M")
+    top3 = " ".join(f"{k}×{c}" for k, c in all_primary.most_common(3))
+    with open(LOG, "a") as f:
+        f.write(f"{ts}  n={n}  tilt={ema_yang:.3f}  churn={ema_move:.3f}  top=[{top3}]  {question}\n")
+
+if __name__ == "__main__":
+    main()
