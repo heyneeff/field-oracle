@@ -858,14 +858,15 @@ function learnHome(){
 }
 function learnTriTable(){
   learnEl.innerHTML=`<h2>I · THE EIGHT TRIGRAMS</h2>
-   <div style="overflow-x:auto"><table>
-   <tr><th></th><th>NAME</th><th>ELEMENT</th><th>ATTRIBUTE</th><th>FAMILY</th></tr>
-   ${TRI.map((t,i)=>`<tr style="cursor:pointer" ${go('tri',i)}>
-     <td style="font-size:22px">${t.g}</td><td>${t.n}</td><td>${t.en}</td>
-     <td class="dim">${t.attr}</td><td class="dim">${t.fam}</td></tr>`).join('')}
-   </table></div>
-   <div class="dim" style="margin-top:10px; font-size:11px">SELECT A TRIGRAM FOR ITS FULL PROFILE ·
-   READ EACH GLYPH BOTTOM-UP; EVERY HEXAGRAM IS AN INNER (LOWER) SITUATION UNDER AN OUTER (UPPER) EXPRESSION</div>
+   <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; max-width:520px">
+   ${TRI.map((t,i)=>`<div ${go('tri',i)} style="cursor:pointer; text-align:center; padding:12px 4px 10px;
+     border:1px solid var(--phos-faint); border-radius:4px">
+     <div style="font-size:56px; line-height:1.1; text-shadow:0 0 10px rgba(255,176,0,.6)">${t.g}</div>
+     <div style="font-size:12px; letter-spacing:.14em; margin-top:6px">${t.en}</div>
+     <div class="dim" style="font-size:10px; letter-spacing:.12em">${t.n}</div></div>`).join('')}
+   </div>
+   <div class="dim" style="margin-top:12px; font-size:11px">SELECT A TRIGRAM FOR ITS FULL PROFILE ·
+   READ EACH GLYPH BOTTOM-UP</div>
    <div style="margin-top:10px"><span class="btn" ${go('home')}>MENU</span></div>`;
 }
 function learnTri(i){
