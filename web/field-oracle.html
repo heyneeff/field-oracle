@@ -1,18 +1,30 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FIELD ORACLE FO-64</title>
 <style>
+  /* Yijing Hexagram Symbols (U+4DC0–4DFF) subset — many mobile system fonts
+     lack this block and silently substitute a blank glyph, which still
+     picks up text-shadow: a glow with no character inside it. Embedding the
+     64 glyphs directly (1KB) guarantees they render everywhere. */
+  @font-face{
+    font-family:'HexSym';
+    src:url(data:font/woff2;base64,d09GMgABAAAAAAQkAA8AAAAAJYwAAAPNAAICDAAAAAAAAAAAAAAAAAAAAAAAAAAAGyAcPAZgADQRCAq+HLAxATYCJAOBBguBBAAEIAWEKgcgFyQYgQQbGh0oLgt4Q/5JGYoFRpRtHlW0utoIHFtslZvPBs/z98NzX//YGis4EjMoS6RsuAGV0YA3Wtsw412t6X7YqMy6AF+AVBSSfSBSNk5UyArV8sB3uH/jeZjHm7Ix8cBamyiNLKAwhPwQcEdh8LVlFMVlmnCAgcYxVz0xOu2vWsQL4An+///e5NIAJ1a6aUAjMvX+pGsDDJWGv+3z/p9KEA2WarOCoaxoF8kKYJAG00QiGI8//Zx714aaJ9cg4ej49c4ISFWoo+bL0wtqDCBGAJCGuq2Uz8JD6hnQPooROWYunqhnnmxghX3cRr9J9TKvgHrFecD48TBljYTqsi+synULP5PL/zkafweYthoAAaim3lCjABTQoFyRgHIlNQDDEEzWWDH5jfHTiwIgpEZFAHoBsI8agwTkIwCAHAA4uVQqCDIZz0skPC+TSSRSqUQikwmCdF2IFINL6ZMBLBCIWrAwLUZ+8vPloL2A5G4gD5HitvW2rJbtp869AiAWsQAHJAANZukFAETISMXWW2ZlZYUgKItotgo5O55FMEUSufn1Yny9mWYzbpYF1Nlx1yL1aDXolfNInC0CoKqAaqlaozl3VyVTPcjUEbqXu6B2LgHVX1eVB8yAlaJ3h0G4a/Qqc2hcIodRs6IhrjuHN3NtfFlELBBnxc1AzuJmAZhUNGAE6kQHjta1VC/nyePx/QZovNXkcNu3mJwftf3n4/i58B3fu1qnz00VJIj40u+jxXO8+4Fx7T5IEVO5EDd4nrndc4stRT+PHhBP4p5tUL82vKNs5sJJ9tq9IH2xcpNU7aHFDNILquqo4fbz300qhg/KUbVUc+qWA5mgL1q1d+t+pGs6bWN3LD463PcRnaMAXlIF7m3W89E0PY/OSQzfmv07OGtRvwan3lSvFxfienTwstE7Sc+j/6FsYO57ns2Dl5cToGLecvl6rai8hSL9ADh/7DkE7qcuZN6i+waAowAI/mQs8wNK770qHAOXv1nFeXROcMu3o0BvPn6MlHK9mSbAW1QkOQFOCYyIJt8RpdDZiDbkd8ToDHnEmg7t5Z3msMzYHCmPSqYIIGKIINCLQoQubAEbuvHYNCL+g+YboYDC5vGhJqhZwOFbGRiQqbTrQpw+ns00YGFnpLuJloBv8PqUiWMz+FrcW59YFv85QLwvRDyIZCEDy0P0DQ0trG1dXW2tcbYKW01G9AT85XC99iFqMacKS2NGc6jNuoQVztYUqvjboabISN9C30TfXM+UYIpTQpf/mqLLlPGUgfchDaj/uX5w8j0EhJaN/+Kw5e8KAA==) format('woff2');
+    unicode-range:U+4DC0-4DFF;
+    font-display:swap;
+  }
   :root{
     --room:#171310;
     --chassis:#cbc1a9; --chassis-hi:#e6ddc6; --chassis-lo:#6e6350; --chassis-deep:#4a4236;
     --screen:#140f07; --phos:#ffb000; --phos-dim:#8a6420; --phos-faint:#4d3812;
     --led-red:#d6452b; --led-red-off:#4d2a22; --led-amb:#ffb000; --led-amb-off:#4d3a17;
     --ink:#3a342a;
-    --mono:ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;
+    --mono:'HexSym',ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;
   }
   html,body{margin:0;padding:0}
   body{
     background:var(--room);
     background-image:radial-gradient(ellipse 90% 70% at 50% 20%, #241d16 0%, var(--room) 70%);
-    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    min-height:100vh; min-height:100dvh; display:flex; align-items:center; justify-content:center;
     font-family:var(--mono); padding:28px 14px; box-sizing:border-box;
   }
   .console{
@@ -48,6 +60,7 @@
     overflow:hidden;
     box-shadow:0 0 40px rgba(0,0,0,.9) inset, 0 0 4px rgba(255,176,0,.12) inset;
   }
+  @media(max-width:760px){ .crt{height:min(440px, 62vh, 62dvh)} }
   .crt::after{ /* scanlines + vignette */
     content:""; position:absolute; inset:0; pointer-events:none; border-radius:8px;
     background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px),
@@ -192,6 +205,33 @@
   .footnote{margin-top:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
   .footnote .legend{font-weight:400; letter-spacing:.14em; color:#6b6149}
   @media (prefers-reduced-motion:reduce){ .row.fresh{animation:none} }
+
+  /* ---------- phones ---------- */
+  @media(max-width:520px){
+    body{padding:12px 8px}
+    .console{padding:16px 14px 14px; border-radius:10px}
+    .nameplate .brand{font-size:14px; letter-spacing:.24em}
+    .deck{gap:12px}
+    .summary,.lab{padding:16px 14px}
+    .summary h2{font-size:11px; letter-spacing:.2em}
+    .summary .big{font-size:34px !important}
+    .summary [style*="font-size:56px"]{font-size:34px !important}
+    .summary [style*="font-size:54px"]{font-size:32px !important}
+    .lab .target-g{font-size:40px}
+    .lab .cue{font-size:22px; letter-spacing:.2em}
+    .now .glyph{font-size:34px}
+    .hexgrid{max-width:100%}
+    .hexgrid span{font-size:19px}
+    .summary [style*="grid-template-columns:repeat(4,1fr)"]{grid-template-columns:repeat(2,1fr) !important}
+    .summary [style*="display:flex; gap:34px"]{gap:14px !important}
+    .transport{gap:8px; margin-top:14px; padding-top:12px}
+    .keybank{flex-wrap:wrap}
+    button.key{padding:9px 10px 8px; font-size:9px}
+    .speed{order:3; width:100%}
+    .qwrap{order:2}
+    .footnote{font-size:0}
+    .footnote .legend{font-size:9px; line-height:1.5}
+  }
 </style>
 
 <div class="console" role="application" aria-label="Field Oracle continuous I Ching console">
