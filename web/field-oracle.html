@@ -242,6 +242,8 @@
       <button class="key" id="btnClear">⏏ CLEAR</button>
       <button class="key" id="btnRain">⋮ RAIN</button>
       <button class="key" id="btnLab">⚗ LAB</button>
+      <button class="key" id="btnOne">① ONE</button>
+      <button class="key" id="btnKilo">▦ 1000</button>
     </div>
     <div class="speed">
       <span class="legend">Speed</span>
@@ -492,6 +494,80 @@ $('btnRead').onclick=()=>{
   summaryEl.classList.add('on');
   ticker.textContent='READ · FIELD SUMMARY ON SCREEN';
 };
+// ---- single throw & 1000-cast field reading (pure: don't touch cascade state) ----
+const TRIGRAM_ORDER=[7,3,5,1,6,2,4,0];
+const esc=s=>s.replace(/</g,'&lt;');
+function showScreen(html){ if(lab) labStop(); hold(); $('btnHold').classList.remove('down');
+  summaryEl.innerHTML=html; summaryEl.classList.add('on'); }
+$('btnOne').onclick=()=>{
+  const q=$('question').value.trim();
+  const lines=toss(), kw=kwOf(lines);
+  const moving=lines.map((v,i)=>v===6||v===9?i+1:0).filter(Boolean);
+  const trans=kwOf(lines.map(v=>v===6?7:v===9?8:v));
+  const bits=BITS_OF[kw], lower=TRIGRAMS[bits&7], upper=TRIGRAMS[bits>>3];
+  // traditional marks: 6 = old yin ✕ (→ yang), 9 = old yang ○ (→ yin)
+  const pic=lines.map(v=>{
+    const yang=v%2;
+    const mark=v===6?' <span style="color:#ff6a3c">✕</span>':v===9?' <span style="color:#ff6a3c">○</span>':'';
+    return `<div>${yang?'━━━━━━━':'━━━&nbsp;━━━'}${mark}</div>`;
+  }).reverse().join('');
+  const changes=lines.map((v,i)=>v===6?`LINE ${i+1} · OLD YIN ✕ → YANG`:v===9?`LINE ${i+1} · OLD YANG ○ → YIN`:null)
+    .filter(Boolean);
+  showScreen(
+    `<h2>SINGLE CAST${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
+    `<div style="display:flex; gap:34px; align-items:center; flex-wrap:wrap">`+
+    `<div class="big" style="font-size:56px">${glyph(kw)}</div>`+
+    `<div style="font-size:12px; line-height:1.5; letter-spacing:.06em">${pic}</div>`+
+    `<div><div>${kw} · ${NAMES[kw]}</div>`+
+    `<div class="dim">${upper} OVER ${lower}</div></div></div>`+
+    (moving.length?
+      `<div style="margin-top:14px">${changes.join('<br>')}</div>`+
+      `<div style="margin-top:8px">BECOMING → ${glyph(trans)} ${trans} · ${NAMES[trans]} `+
+      `<span class="dim">(${TRIGRAMS[BITS_OF[trans]>>3]} OVER ${TRIGRAMS[BITS_OF[trans]&7]})</span></div>`:
+      `<div style="margin-top:14px" class="dim">NO MOVING LINES · THE STATE IS AT REST</div>`)+
+    `<div class="dim" style="margin-top:16px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN TO THE STREAM</div>`);
+  ticker.innerHTML=`ONE · <b>${glyph(kw)} ${kw} ${NAMES[kw]}</b>${moving.length?` → <b>${trans}</b>`:''}`;
+};
+$('btnKilo').onclick=()=>{
+  const q=$('question').value.trim(), N=1000, base=N/64;
+  const prim={}, trn={}, up={}, lo={}, hotL=[0,0,0,0,0,0], mvDist=[0,0,0,0,0,0,0];
+  let yangTotal=0;
+  for(let i=0;i<N;i++){
+    const lines=toss(), kw=kwOf(lines);
+    const mv=lines.filter(v=>v===6||v===9).length;
+    prim[kw]=(prim[kw]||0)+1;
+    trn[kwOf(lines.map(v=>v===6?7:v===9?8:v))]=(trn[kwOf(lines.map(v=>v===6?7:v===9?8:v))]||0)+1;
+    const b=BITS_OF[kw]; up[b>>3]=(up[b>>3]||0)+1; lo[b&7]=(lo[b&7]||0)+1;
+    lines.forEach((v,j)=>{ if(v%2) yangTotal++; if(v===6||v===9) hotL[j]++; });
+    mvDist[mv]++;
+  }
+  const sorted=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]);
+  const topP=sorted(prim).slice(0,3), topT=sorted(trn).slice(0,2);
+  const H=Object.values(prim).reduce((s,c)=>s+(c/N)**2,0);
+  const coh=(H-1/64)/(1-1/64);
+  const triRow=o=>TRIGRAM_ORDER.map(t=>`<td>${TRIGRAMS[t].slice(0,4)}</td><td class="dim">${Math.round((o[t]||0)/N*100)}%</td>`).join('');
+  const yangPct=yangTotal/(N*6)*100;
+  const lineCells=hotL.map((c,i)=>{
+    const pct=c/N*100, hotCls=Math.abs(pct-25)>=2.8; // ~2σ at n=1000
+    return `<td${hotCls?' style="color:#ff6a3c"':''}>L${i+1}</td><td class="${hotCls?'':'dim'}">${pct.toFixed(1)}%</td>`;
+  }).join('');
+  showScreen(
+    `<h2>FIELD READING · ${N} CASTS${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
+    `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
+    `<table>${topP.map(([k,c])=>`<tr><td>${glyph(+k)} ${k} ${NAMES[k]}</td><td>×${c}</td><td class="dim">${(c/base).toFixed(1)}× BASELINE</td></tr>`).join('')}</table>`+
+    `<div style="margin-top:10px">FLOWING → ${topT.map(([k,c])=>`${glyph(+k)} ${k} ×${c}`).join(' · ')}</div>`+
+    `<div style="margin-top:10px">COHERENCE ${coh.toFixed(4)} <span class="dim">(NOISE FLOOR ~0.01–0.03 AT N=1000)</span></div>`+
+    `<div>TILT ${yangPct>=50?'YANG':'YIN'} · ${yangPct.toFixed(1)}% YANG LINES</div>`+
+    `<div style="margin-top:10px; font-size:11px" class="dim">CHANGING LINES BY POSITION · BASELINE 25% · RED = BEYOND ~2σ</div>`+
+    `<div style="overflow-x:auto"><table><tr>${lineCells}</tr></table></div>`+
+    `<div style="margin-top:12px; font-size:11px" class="dim">UPPER TRIGRAM WEATHER</div>`+
+    `<div style="overflow-x:auto"><table><tr>${triRow(up)}</tr></table></div>`+
+    `<div style="font-size:11px" class="dim">LOWER TRIGRAM WEATHER</div>`+
+    `<div style="overflow-x:auto"><table><tr>${triRow(lo)}</tr></table></div>`+
+    `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')} · PRESS CAST TO RETURN</div>`);
+  ticker.innerHTML=`FIELD · 1000 CASTS · MODE <b>${glyph(+topP[0][0])} ${topP[0][0]}</b> ×${topP[0][1]} · COHERENCE ${coh.toFixed(3)}`;
+};
+
 // ---- LAB: preregistered blind-block intent protocol ----
 // Session: machine picks target hexagram + shuffled block plan BEFORE any
 // casting (preregistration). Blocks are cued INTEND or REST; a third of the
