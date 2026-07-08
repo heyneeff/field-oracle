@@ -544,21 +544,25 @@ $('btnOne').onclick=()=>{
     `<div class="dim" style="margin-top:16px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN TO THE STREAM</div>`);
   ticker.innerHTML=`ONE · <b>${glyph(kw)} ${kw} ${NAMES[kw]}</b>${moving.length?` → <b>${trans}</b>`:''}`;
 };
+let kilo=null; // last field reading, for grid/reading toggle
 $('btnKilo').onclick=()=>{
   const q=$('question').value.trim(), N=1000, base=N/64;
   const prim={}, trn={}, up={}, lo={}, hotL=[0,0,0,0,0,0], mvDist=[0,0,0,0,0,0,0];
-  let yangTotal=0;
+  let yangTotal=0; const castLog=[];
   for(let i=0;i<N;i++){
     const lines=toss(), kw=kwOf(lines);
     const mv=lines.filter(v=>v===6||v===9).length;
+    castLog.push(kw);
     prim[kw]=(prim[kw]||0)+1;
-    trn[kwOf(lines.map(v=>v===6?7:v===9?8:v))]=(trn[kwOf(lines.map(v=>v===6?7:v===9?8:v))]||0)+1;
+    const tkw=kwOf(lines.map(v=>v===6?7:v===9?8:v));
+    trn[tkw]=(trn[tkw]||0)+1;
     const b=BITS_OF[kw]; up[b>>3]=(up[b>>3]||0)+1; lo[b&7]=(lo[b&7]||0)+1;
     lines.forEach((v,j)=>{ if(v%2) yangTotal++; if(v===6||v===9) hotL[j]++; });
     mvDist[mv]++;
   }
   const sorted=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]);
   const topP=sorted(prim).slice(0,3), topT=sorted(trn).slice(0,2);
+  kilo={casts:castLog, top:topP.map(([k])=>+k), counts:prim, q};
   const H=Object.values(prim).reduce((s,c)=>s+(c/N)**2,0);
   const coh=(H-1/64)/(1-1/64);
   const triRow=o=>TRIGRAM_ORDER.map(t=>`<td>${TRIGRAMS[t].slice(0,4)}</td><td class="dim">${Math.round((o[t]||0)/N*100)}%</td>`).join('');
@@ -567,8 +571,9 @@ $('btnKilo').onclick=()=>{
     const pct=c/N*100, hotCls=Math.abs(pct-25)>=2.8; // ~2σ at n=1000
     return `<td${hotCls?' style="color:#ff6a3c"':''}>L${i+1}</td><td class="${hotCls?'':'dim'}">${pct.toFixed(1)}%</td>`;
   }).join('');
-  showScreen(
+  kilo.readingHtml=
     `<h2>FIELD READING · ${N} CASTS${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
+    `<div style="margin-bottom:8px"><span class="btn" data-kv="grid">▦ VIEW THE FIELD GRID</span></div>`+
     `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
     `<table>${topP.map(([k,c])=>`<tr><td>${glyph(+k)} ${k} ${NAMES[k]}</td><td>×${c}</td><td class="dim">${(c/base).toFixed(1)}× BASELINE</td></tr>`).join('')}</table>`+
     `<div style="margin-top:10px">FLOWING → ${topT.map(([k,c])=>`${glyph(+k)} ${k} ×${c}`).join(' · ')}</div>`+
@@ -580,9 +585,31 @@ $('btnKilo').onclick=()=>{
     `<div style="overflow-x:auto"><table><tr>${triRow(up)}</tr></table></div>`+
     `<div style="font-size:11px" class="dim">LOWER TRIGRAM WEATHER</div>`+
     `<div style="overflow-x:auto"><table><tr>${triRow(lo)}</tr></table></div>`+
-    `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')} · PRESS CAST TO RETURN</div>`);
+    `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')} · PRESS CAST TO RETURN</div>`;
+  showScreen(kilo.readingHtml);
   ticker.innerHTML=`FIELD · 1000 CASTS · MODE <b>${glyph(+topP[0][0])} ${topP[0][0]}</b> ×${topP[0][1]} · COHERENCE ${coh.toFixed(3)}`;
 };
+function kiloGrid(){
+  const [a,b,c]=kilo.top;
+  const style=kw=> kw===a?'color:#ff6a3c; text-shadow:0 0 10px rgba(255,80,48,.9)'
+    : kw===b?'color:#ffe9b0; text-shadow:0 0 8px rgba(255,208,112,.8)'
+    : kw===c?'color:#ffd070; text-shadow:0 0 6px rgba(255,208,112,.55)'
+    : 'color:rgba(255,176,0,.42); text-shadow:none';
+  showScreen(
+    `<h2>THE FIELD · 1000 CASTS IN THROW ORDER${kilo.q?' · “'+esc(kilo.q).toUpperCase()+'”':''}</h2>`+
+    `<div style="margin-bottom:8px"><span class="btn" data-kv="reading">≡ VIEW THE READING</span>`+
+    ` <span style="font-size:11px" class="dim">MODE <span style="color:#ff6a3c">${glyph(a)} ${a} ×${kilo.counts[a]}</span>`+
+    ` · 2ND <span style="color:#ffe9b0">${glyph(b)} ${b} ×${kilo.counts[b]}</span>`+
+    ` · 3RD <span style="color:#ffd070">${glyph(c)} ${c} ×${kilo.counts[c]}</span> · BASELINE 15.6</span></div>`+
+    `<div style="font-size:15px; line-height:1.45; letter-spacing:.06em; word-break:break-all">`+
+    kilo.casts.map(kw=>`<span style="${style(kw)}" title="${kw} ${NAMES[kw]}">${glyph(kw)}</span>`).join('')+
+    `</div>`);
+  ticker.textContent='FIELD GRID · EVERY JEWEL OF THE THOUSAND · HOVER FOR NAMES';
+}
+summaryEl.addEventListener('click',e=>{
+  const v=e.target.closest('[data-kv]'); if(!v||!kilo) return;
+  if(v.dataset.kv==='grid') kiloGrid(); else showScreen(kilo.readingHtml);
+});
 
 // ---- LAB: preregistered blind-block intent protocol ----
 // Session: machine picks target hexagram + shuffled block plan BEFORE any
