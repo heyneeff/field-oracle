@@ -91,6 +91,23 @@
     text-shadow:0 0 6px rgba(255,176,0,.5); display:none; overflow:auto; box-sizing:border-box;
   }
   .summary.on{display:block}
+  /* lab screen */
+  .lab{
+    position:absolute; inset:0; z-index:1; background:var(--screen); display:none;
+    color:var(--phos); text-shadow:0 0 6px rgba(255,176,0,.5);
+    flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    text-align:center; padding:24px; box-sizing:border-box; overflow:auto;
+  }
+  .lab.on{display:flex}
+  .lab .cue{font-size:34px; letter-spacing:.3em}
+  .lab .cue.intend{color:#ffe9b0; text-shadow:0 0 18px rgba(255,208,112,.8)}
+  .lab .cue.rest{color:var(--phos-dim); text-shadow:none}
+  .lab .target-g{font-size:64px; line-height:1.1}
+  .lab .fine{font-size:11px; letter-spacing:.14em; color:var(--phos-dim); line-height:1.9}
+  .lab a{color:var(--phos)}
+  .lab table{border-collapse:collapse; font-variant-numeric:tabular-nums; font-size:13px}
+  .lab td,.lab th{padding:3px 14px; font-weight:400}
+  .lab th{color:var(--phos-dim); letter-spacing:.14em; font-size:10px}
   .summary h2{font-size:13px; letter-spacing:.3em; font-weight:400; border-bottom:1px solid var(--phos-faint);
     padding-bottom:8px; margin:0 0 14px}
   .summary .dim{color:var(--phos-dim)}
@@ -183,6 +200,7 @@
         <canvas id="rain" aria-hidden="true"></canvas>
         <div class="feed" id="feed" aria-live="off"></div>
         <div class="summary" id="summary"></div>
+        <div class="lab" id="lab"></div>
         <div class="ticker" id="ticker">STANDBY · PRESS CAST TO OPEN THE FIELD</div>
       </div>
     </div>
@@ -223,6 +241,7 @@
       <button class="key" id="btnRead">■ READ FIELD</button>
       <button class="key" id="btnClear">⏏ CLEAR</button>
       <button class="key" id="btnRain">⋮ RAIN</button>
+      <button class="key" id="btnLab">⚗ LAB</button>
     </div>
     <div class="speed">
       <span class="legend">Speed</span>
@@ -234,7 +253,7 @@
     </div>
   </div>
   <div class="footnote">
-    <span class="legend">Three-coin method · King Wen sequence · baseline 25% moving</span>
+    <span class="legend">Three-coin method · King Wen sequence · entropy: OS (crypto.getRandomValues)</span>
     <span class="legend">A contemplative instrument, not a statistical claim</span>
   </div>
 </div>
@@ -261,7 +280,14 @@ let win=[], lineRun=[0,0,0,0,0,0], upperRun=0, lastUpper=null;
 let allPrimary={}, allTrans={}, hotTotals=[0,0,0,0,0,0];
 const WINDOW=32, WEATHER=16, MAXROWS=200;
 
-function toss(){ let l=[]; for(let i=0;i<6;i++){ let s=0; for(let c=0;c<3;c++) s+=2+(Math.random()<.5?0:1); l.push(s);} return l; }
+// entropy: OS pool via crypto.getRandomValues — a physical source (hardware-
+// noise seeded), unlike Math.random. A QRNG can replace bit() when served.
+const ent={buf:new Uint8Array(4096), i:4096*8};
+function bit(){
+  if(ent.i>=ent.buf.length*8){ crypto.getRandomValues(ent.buf); ent.i=0; }
+  const b=(ent.buf[ent.i>>3]>>(ent.i&7))&1; ent.i++; return b;
+}
+function toss(){ let l=[]; for(let i=0;i<6;i++){ let s=0; for(let c=0;c<3;c++) s+=2+bit(); l.push(s);} return l; }
 const kwOf = lines => KING_WEN[lines.reduce((b,v,i)=>b|((v%2)<<i),0)];
 
 function cast(){
@@ -466,6 +492,101 @@ $('btnRead').onclick=()=>{
   summaryEl.classList.add('on');
   ticker.textContent='READ · FIELD SUMMARY ON SCREEN';
 };
+// ---- LAB: preregistered blind-block intent protocol ----
+// Session: machine picks target hexagram + shuffled block plan BEFORE any
+// casting (preregistration). Blocks are cued INTEND or REST; a third of the
+// INTEND-cued blocks are secretly SHAM (analyzed separately — they test
+// expectation effects vs influence). No target-hit feedback until the end.
+// Fixed length: no optional stopping. Full raw log downloadable as JSON.
+const LAB={BLOCKS_INTEND:8, BLOCKS_SHAM:4, BLOCKS_REST:12, CASTS:40, MS:150};
+let lab=null, labTimer=null;
+const labEl=$('lab');
+function labPlan(){
+  const labels=[...Array(LAB.BLOCKS_INTEND).fill('INTEND'),
+                ...Array(LAB.BLOCKS_SHAM).fill('SHAM'),
+                ...Array(LAB.BLOCKS_REST).fill('REST')];
+  for(let i=labels.length-1;i>0;i--){ // Fisher-Yates on entropy bits
+    let j=0; do{ j=(bit()<<4)|(bit()<<3)|(bit()<<2)|(bit()<<1)|bit(); }while(j>i);
+    [labels[i],labels[j]]=[labels[j],labels[i]];
+  }
+  let t=0; do{ t=(bit()<<5)|(bit()<<4)|(bit()<<3)|(bit()<<2)|(bit()<<1)|bit(); }while(t>=64);
+  return {target:t+1, labels};
+}
+function labStop(){ clearTimeout(labTimer); lab=null; labEl.classList.remove('on');
+  $('btnLab').classList.remove('down'); ticker.textContent='LAB ABORTED · SESSION DISCARDED'; }
+function labStart(){
+  hold(); $('btnHold').classList.remove('down'); summaryEl.classList.remove('on');
+  const {target,labels}=labPlan();
+  lab={target, labels, block:0, castIdx:0, casts:[], t0:new Date().toISOString(), phase:'prereg'};
+  $('btnLab').classList.add('down');
+  labEl.innerHTML=
+    `<div class="fine">PREREGISTERED · ${lab.t0}</div>`+
+    `<div class="target-g">${glyph(target)}</div>`+
+    `<div>TARGET · ${target} ${NAMES[target]}</div>`+
+    `<div class="fine">${labels.length} BLOCKS × ${LAB.CASTS} CASTS · CUED INTEND OR REST<br>`+
+    `SOME INTEND CUES ARE SHAM — YOU CANNOT TELL WHICH<br>`+
+    `NO FEEDBACK UNTIL THE SESSION ENDS · NO EARLY STOPPING<br><br>`+
+    `HOLD THE TARGET IN MIND ONLY DURING INTEND · PRESS ⚗ LAB TO BEGIN</div>`;
+  labEl.classList.add('on');
+  ticker.textContent='LAB · PREREGISTRATION ON SCREEN · ⚗ TO BEGIN, ■ TO ABORT';
+}
+function labBlock(){
+  if(lab.block>=lab.labels.length){ labResults(); return; }
+  const cue=lab.labels[lab.block]==='REST'?'REST':'INTEND'; // sham cues as intend
+  labEl.innerHTML=
+    `<div class="fine">BLOCK ${lab.block+1} / ${lab.labels.length}</div>`+
+    `<div class="cue ${cue==='INTEND'?'intend':'rest'}">${cue}</div>`+
+    (cue==='INTEND'?`<div class="target-g">${glyph(lab.target)}</div>`:
+     `<div class="target-g" style="opacity:.15">${glyph(lab.target)}</div>`)+
+    `<div class="fine" id="labProg"></div>`;
+  lab.castIdx=0; lab.phase='run';
+  labCast();
+}
+function labCast(){
+  if(!lab) return;
+  const lines=toss(); const kw=kwOf(lines);
+  lab.casts.push({b:lab.block, l:lab.labels[lab.block], kw});
+  lab.castIdx++;
+  const p=document.getElementById('labProg');
+  if(p) p.textContent='█'.repeat(Math.round(lab.castIdx/LAB.CASTS*24)).padEnd(24,'░');
+  if(lab.castIdx>=LAB.CASTS){ lab.block++; labTimer=setTimeout(labBlock,1800); }
+  else labTimer=setTimeout(labCast, LAB.MS);
+}
+function labResults(){
+  const p=1/64;
+  const cond=l=>{ const cs=lab.casts.filter(c=>c.l===l); const n=cs.length;
+    const hits=cs.filter(c=>c.kw===lab.target).length;
+    const z=n?(hits-n*p)/Math.sqrt(n*p*(1-p)):0;
+    return {n,hits,rate:n?hits/n:0,z}; };
+  const I=cond('INTEND'), S=cond('SHAM'), R=cond('REST');
+  const row=(name,c)=>`<tr><td>${name}</td><td>${c.hits}/${c.n}</td><td>${(c.rate*100).toFixed(2)}%</td><td>${c.z>=0?'+':''}${c.z.toFixed(2)}σ</td></tr>`;
+  const logObj={protocol:'FO-64 LAB v1',prereg:lab.t0,target:lab.target,
+    blocks:{intend:LAB.BLOCKS_INTEND,sham:LAB.BLOCKS_SHAM,rest:LAB.BLOCKS_REST,casts:LAB.CASTS},
+    entropy:'crypto.getRandomValues',casts:lab.casts,
+    results:{INTEND:I,SHAM:S,REST:R}};
+  const href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(logObj));
+  const verdict = I.z>=3 ? 'STRONG DEVIATION — REPLICATE BEFORE BELIEVING IT'
+    : I.z>=2 ? 'SUGGESTIVE — WITHIN REACH OF CHANCE; RUN MORE SESSIONS'
+    : 'WITHIN CHANCE — AN HONEST NULL IS A RESULT';
+  labEl.innerHTML=
+    `<div class="fine">SESSION COMPLETE · TARGET ${glyph(lab.target)} ${lab.target} ${NAMES[lab.target]} · BASELINE ${(p*100).toFixed(2)}%</div>`+
+    `<table><tr><th>CONDITION</th><th>HITS</th><th>RATE</th><th>Z</th></tr>`+
+    row('INTEND',I)+row('SHAM (cued intend)',S)+row('REST',R)+`</table>`+
+    `<div>${verdict}</div>`+
+    `<div class="fine">SHAM ≈ INTEND WITH BOTH ELEVATED SUGGESTS EXPECTATION, NOT INFLUENCE<br>`+
+    `ONE SESSION PROVES NOTHING IN EITHER DIRECTION — THE LOG IS THE PRODUCT</div>`+
+    `<a download="fo64-lab-${lab.t0.replace(/[:.]/g,'-')}.json" href="${href}">▼ DOWNLOAD RAW LOG (JSON)</a>`+
+    `<div class="fine">⚗ NEW SESSION · ■ CLOSE</div>`;
+  lab.phase='done';
+  ticker.textContent='LAB · RESULTS ON SCREEN';
+}
+$('btnLab').onclick=()=>{
+  if(!lab){ labStart(); return; }
+  if(lab.phase==='prereg'){ lab.phase='run'; ticker.textContent='LAB · SESSION RUNNING'; labBlock(); return; }
+  if(lab.phase==='done'){ labStart(); return; }
+};
+$('btnRead').addEventListener('click',()=>{ if(lab) labStop(); });
+
 addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT') return;
   if(e.key===' '){ e.preventDefault(); running?hold():start(); }
