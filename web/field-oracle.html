@@ -210,23 +210,27 @@
     margin-bottom:12px;
   }
   .transport-controls{display:flex; align-items:center; gap:14px; flex-wrap:wrap}
-  button.key{
+  .key{
     font-family:var(--mono); font-size:10px; letter-spacing:.14em; font-weight:700;
-    color:var(--ink); text-shadow:0 1px 0 rgba(255,255,255,.5);
+    color:var(--ink); text-shadow:0 1px 0 rgba(255,255,255,.5); text-align:center;
+    text-decoration:none; display:block;
     background:linear-gradient(180deg,#e8dfc8,#c8bda2);
     border:1px solid #8f8468; border-radius:3px; padding:12px 16px 10px; cursor:pointer;
     box-shadow:0 3px 0 #8f8468, 0 1px 0 rgba(255,255,255,.7) inset;
     transition:transform .05s, box-shadow .05s;
     width:100%; box-sizing:border-box;
   }
-  button.key:active, button.key.down{transform:translateY(3px); box-shadow:0 0 0 #8f8468, 0 1px 0 rgba(255,255,255,.5) inset}
-  button.key:focus-visible{outline:2px solid var(--led-red); outline-offset:2px}
-  button.key.rec{color:#7d2314}
-  button.key.key-primary{
+  .key:active, .key.down{transform:translateY(3px); box-shadow:0 0 0 #8f8468, 0 1px 0 rgba(255,255,255,.5) inset}
+  .key:focus-visible{outline:2px solid var(--led-red); outline-offset:2px}
+  .key.rec{color:#7d2314}
+  .key.donate{color:#7d2314; background:linear-gradient(180deg,#f0cfc4,#e0a898); border-color:#a8331e}
+  .key.donate:active{box-shadow:0 0 0 #a8331e, 0 1px 0 rgba(255,255,255,.5) inset}
+  .key.key-primary{
     flex:2; font-size:15px; padding:20px 16px 17px; letter-spacing:.18em;
     box-shadow:0 4px 0 #8f8468, 0 1px 0 rgba(255,255,255,.7) inset;
   }
-  button.key.key-primary:active, button.key.key-primary.down{box-shadow:0 1px 0 #8f8468, 0 1px 0 rgba(255,255,255,.5) inset}
+  .key.key-primary:active, .key.key-primary.down{box-shadow:0 1px 0 #8f8468, 0 1px 0 rgba(255,255,255,.5) inset}
+  #btnLearn{grid-column:span 2}
   .speed{display:flex; align-items:center; gap:8px}
   .speed input[type=range]{width:110px; accent-color:var(--led-red)}
   .qwrap{flex:1; min-width:160px; display:flex; align-items:center; gap:8px}
@@ -240,9 +244,6 @@
   .footnote{grid-area:foot; margin-top:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
   .footlink{cursor:pointer; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:2px}
   .footlink:hover{color:var(--chassis-deep)}
-  a.footlink{color:inherit}
-  a.footlink.donate{color:var(--led-red)}
-  a.footlink.donate:hover{color:#a8331e}
   .footnote .legend{font-weight:400; letter-spacing:.14em; color:#6b6149}
   @media (prefers-reduced-motion:reduce){ .row.fresh{animation:none} }
 
@@ -268,8 +269,8 @@
     .transport{margin-top:8px; padding-top:8px}
     .transport-primary{gap:8px; margin-bottom:6px}
     .transport-secondary{grid-template-columns:repeat(3,1fr); gap:4px; margin-bottom:8px}
-    button.key{padding:7px 5px 6px; font-size:9px}
-    button.key.key-primary{font-size:12px; padding:11px 10px 9px}
+    .key{padding:7px 5px 6px; font-size:9px}
+    .key.key-primary{font-size:12px; padding:11px 10px 9px}
     .transport-controls{gap:6px}
     .speed{order:3; width:100%}
     .qwrap{order:2}
@@ -335,6 +336,7 @@
       <button class="key" id="btnMatrix">⋮ MATRIX</button>
       <button class="key" id="btnLab">⚗ LAB</button>
       <button class="key" id="btnLearn">✎ LEARN</button>
+      <a class="key donate" href="https://ko-fi.com/neeff" target="_blank" rel="noopener noreferrer">♥ DONATE</a>
     </div>
     <div class="transport-controls">
       <div class="speed">
@@ -352,7 +354,6 @@
     <span style="display:flex; gap:14px">
       <span class="legend footlink" id="btnSync">🔑 SYNC</span>
       <span class="legend footlink" id="btnPool">⌘ POOL</span>
-      <a class="legend footlink donate" href="https://ko-fi.com/neeff" target="_blank" rel="noopener noreferrer">♥ DONATE</a>
     </span>
   </div>
 </div>
