@@ -271,6 +271,10 @@
   }
   .footlink:hover{background:rgba(58,52,42,.18); color:var(--chassis-deep)}
   .footnote .legend{font-weight:400; letter-spacing:.14em; color:#6b6149}
+  .footlink.guerilla{background:var(--led-amb); border-color:#8a6420; color:#3a2a00; font-weight:800}
+  .footlink.guerilla:hover{background:#ffc733}
+  .footlink.diviners{background:#7a5c8a; border-color:#5c4468; color:#f2ecf5; font-weight:800}
+  .footlink.diviners:hover{background:#8f6d9f}
   @media (prefers-reduced-motion:reduce){ .row.fresh{animation:none} }
 
   /* ---------- phones ---------- */
@@ -389,10 +393,11 @@
     </div>
   </div>
   <div class="footnote">
+    <span class="legend footlink" id="btnHelp">❓ INSTRUCTIONS</span>
     <span class="legend footlink" id="btnSync">🔑 SYNC</span>
     <span class="legend footlink" id="btnPool">⌘ POOL</span>
-    <a class="legend footlink" href="https://guerillaconcerto.com" target="_blank" rel="noopener noreferrer">GUERILLA CONCERTO</a>
-    <a class="legend footlink" href="https://divinersguild.org" target="_blank" rel="noopener noreferrer">DIVINERS GUILD</a>
+    <a class="legend footlink guerilla" href="https://guerillaconcerto.com" target="_blank" rel="noopener noreferrer">GUERILLA CONCERTO</a>
+    <a class="legend footlink diviners" href="https://divinersguild.org" target="_blank" rel="noopener noreferrer">DIVINERS GUILD</a>
   </div>
   <div class="signature">NEEFF</div>
 </div>
@@ -879,6 +884,38 @@ function showPool(){
 }
 $('btnSync').onclick=showSync;
 $('btnPool').onclick=showPool;
+function showHelp(){
+  showScreen(
+    `<h2>❓ HOW TO USE THIS</h2>`+
+    `<div style="max-width:56ch; line-height:1.9">Type a question first if you have one (it gets logged
+    either way — see SYNC below). Then:</div>`+
+    `<div style="max-width:60ch; font-size:13px; line-height:2.1; margin-top:12px">`+
+    `<div><b>▶ CAST</b> — one throw, right now. The panel above shows the hexagram (and what it's becoming,
+    if any lines moved); the screen below gives the full reading.</div>`+
+    `<div style="margin-top:8px"><b>▦ CAST ×1000</b> — casts about 1000 hexagrams at once and shows the
+    field's shape: which ones came up more than chance, how the lines and trigrams distributed.</div>`+
+    `<div style="margin-top:8px"><b>⋮ MATRIX</b> — a live grid of hexagrams streaming in, one per cast,
+    color-lit when a hexagram repeats beyond chance. Starts the field running by itself.</div>`+
+    `<div style="margin-top:8px"><b>■ READ FIELD</b> — a summary of everything cast so far in this session
+    (needs CAST or MATRIX to have run first).</div>`+
+    `<div style="margin-top:8px"><b>■ STOP</b> — pauses or resumes the background field. Also just gets you
+    back to standby from wherever you are.</div>`+
+    `<div style="margin-top:8px"><b>⏏ CLEAR</b> — wipes the session (counts, window, feed) and starts fresh.</div>`+
+    `<div style="margin-top:8px"><b>⚗ LAB</b> — a preregistered, blinded intent-testing protocol: cued
+    INTEND/SHAM/REST blocks, no feedback until the end. Results can be submitted to the public POOL.</div>`+
+    `<div style="margin-top:8px"><b>✎ LEARN</b> — a from-scratch course: what a hexagram is, the eight
+    trigrams, how lines change, building a hexagram, all 64, and a drill to test yourself.</div>`+
+    `<div style="margin-top:8px"><b>🔑 SYNC</b> — every cast, reading, and typed question is saved under an
+    anonymous key (generated on first use). Anyone with the key can read that log, so keep it private —
+    it's how you pull your history onto another device.</div>`+
+    `<div style="margin-top:8px"><b>⌘ POOL</b> — the public, shared log of every LAB session anyone has
+    submitted, pooled into one live result.</div>`+
+    `<div style="margin-top:8px"><b>♥ DONATE</b> — supports the project directly, no obligation.</div>`+
+    `</div>`+
+    `<div class="dim" style="margin-top:16px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN TO THE STREAM</div>`);
+  ticker.textContent='INSTRUCTIONS · WHAT EACH BUTTON DOES';
+}
+$('btnHelp').onclick=showHelp;
 
 // ---- LAB: preregistered blind-block intent protocol ----
 // Session: machine picks target hexagram + shuffled block plan BEFORE any
