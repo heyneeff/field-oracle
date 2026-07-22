@@ -79,7 +79,7 @@
     overflow:hidden;
     box-shadow:0 0 40px rgba(0,0,0,.9) inset, 0 0 4px rgba(255,176,0,.12) inset;
   }
-  @media(max-width:760px){ .crt{height:min(440px, 62vh, 62dvh)} }
+  @media(max-width:760px){ .crt{height:min(280px, 34vh, 34dvh)} }
   .crt::after{ /* scanlines + vignette */
     content:""; position:absolute; inset:0; pointer-events:none; border-radius:8px;
     background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px),
@@ -240,14 +240,19 @@
   .footnote{grid-area:foot; margin-top:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
   .footlink{cursor:pointer; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:2px}
   .footlink:hover{color:var(--chassis-deep)}
+  a.footlink{color:inherit}
+  a.footlink.donate{color:var(--led-red)}
+  a.footlink.donate:hover{color:#a8331e}
   .footnote .legend{font-weight:400; letter-spacing:.14em; color:#6b6149}
   @media (prefers-reduced-motion:reduce){ .row.fresh{animation:none} }
 
   /* ---------- phones ---------- */
   @media(max-width:520px){
-    body{padding:12px 8px}
-    .console{padding:16px 14px 14px; border-radius:10px}
+    body{padding:8px 8px}
+    .console{padding:12px 14px 10px; border-radius:10px}
+    .nameplate{margin-bottom:8px}
     .nameplate .brand{font-size:14px; letter-spacing:.24em}
+    .footnote{margin-top:8px}
     .summary,.lab{padding:16px 14px}
     .summary h2{font-size:11px; letter-spacing:.2em}
     .summary .big{font-size:34px !important}
@@ -260,12 +265,12 @@
     .hexgrid span{font-size:19px}
     .summary [style*="grid-template-columns:repeat(4,1fr)"]{grid-template-columns:repeat(2,1fr) !important}
     .summary [style*="display:flex; gap:34px"]{gap:14px !important}
-    .transport{margin-top:14px; padding-top:12px}
-    .transport-primary{gap:8px; margin-bottom:8px}
-    .transport-secondary{grid-template-columns:repeat(3,1fr); gap:5px; margin-bottom:10px}
-    button.key{padding:9px 6px 8px; font-size:9px}
-    button.key.key-primary{font-size:12px; padding:16px 10px 13px}
-    .transport-controls{gap:8px}
+    .transport{margin-top:8px; padding-top:8px}
+    .transport-primary{gap:8px; margin-bottom:6px}
+    .transport-secondary{grid-template-columns:repeat(3,1fr); gap:4px; margin-bottom:8px}
+    button.key{padding:7px 5px 6px; font-size:9px}
+    button.key.key-primary{font-size:12px; padding:11px 10px 9px}
+    .transport-controls{gap:6px}
     .speed{order:3; width:100%}
     .qwrap{order:2}
     .footnote{font-size:0}
@@ -347,6 +352,7 @@
     <span style="display:flex; gap:14px">
       <span class="legend footlink" id="btnSync">🔑 SYNC</span>
       <span class="legend footlink" id="btnPool">⌘ POOL</span>
+      <a class="legend footlink donate" href="https://ko-fi.com/neeff" target="_blank" rel="noopener noreferrer">♥ DONATE</a>
     </span>
   </div>
 </div>
