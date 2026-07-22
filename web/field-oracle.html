@@ -41,7 +41,8 @@
       "now   now"
       "crt   rail"
       "trans trans"
-      "foot  foot";
+      "foot  foot"
+      "sig   sig";
   }
   /* silkscreen legends */
   .legend{
@@ -55,6 +56,7 @@
   .crt-bezel{grid-area:crt}
   .rail{grid-area:rail}
   .now{grid-area:now}
+  .signature{grid-area:sig}
   @media(max-width:760px){
     .console{
       grid-template-columns:1fr;
@@ -64,7 +66,8 @@
         "crt"
         "trans"
         "rail"
-        "foot";
+        "foot"
+        "sig";
     }
   }
 
@@ -255,7 +258,8 @@
   }
   .qwrap input::placeholder{color:var(--phos-dim)}
   .qwrap input:focus{outline:1px solid var(--phos-dim)}
-  .footnote{grid-area:foot; margin-top:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
+  .footnote{grid-area:foot; margin-top:12px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap}
+  .signature{text-align:center; margin-top:10px; font-size:11px; letter-spacing:.35em; font-weight:800; color:#8a8163}
   .footlink{
     cursor:pointer; text-decoration:none; display:inline-flex; align-items:center;
     padding:5px 14px; border-radius:999px; border:1px solid var(--ink);
@@ -300,6 +304,7 @@
     .qwrap{order:2}
     .footnote{font-size:0}
     .footnote .legend{font-size:9px; line-height:1.5}
+    .signature{font-size:10px; margin-top:8px}
   }
 </style>
 
@@ -310,16 +315,8 @@
 
   <div class="now" id="now">
     <div class="now-decimal" id="nowDecimal"></div>
-    <div class="now-row">
-      <div class="now-hex">
-        <span class="now-glyph" id="nowGlyph1">䷀</span>
-        <div class="now-num" id="nowNum1"></div>
-      </div>
-      <span class="now-arrow" id="nowArrow" style="display:none">→</span>
-      <div class="now-hex" id="nowHex2" style="display:none">
-        <span class="now-glyph" id="nowGlyph2"></span>
-        <div class="now-num" id="nowNum2"></div>
-      </div>
+    <div class="now-row" id="nowRow">
+      <div class="now-hex"><span class="now-glyph">䷀</span></div>
     </div>
     <div class="now-name" id="nowName">PRESS CAST TO OPEN THE FIELD</div>
   </div>
@@ -388,12 +385,12 @@
     </div>
   </div>
   <div class="footnote">
-    <span class="legend">Three-coin method · King Wen sequence · entropy: OS (crypto.getRandomValues)</span>
-    <span style="display:flex; gap:14px">
-      <span class="legend footlink" id="btnSync">🔑 SYNC</span>
-      <span class="legend footlink" id="btnPool">⌘ POOL</span>
-    </span>
+    <span class="legend footlink" id="btnSync">🔑 SYNC</span>
+    <span class="legend footlink" id="btnPool">⌘ POOL</span>
+    <a class="legend footlink" href="https://guerillaconcerto.com" target="_blank" rel="noopener noreferrer">GUERILLA CONCERTO</a>
+    <a class="legend footlink" href="https://divinersguild.org" target="_blank" rel="noopener noreferrer">DIVINERS GUILD</a>
   </div>
+  <div class="signature">NEEFF</div>
 </div>
 
 <script>
@@ -678,19 +675,22 @@ $('btnRead').onclick=()=>{
 const TRIGRAM_ORDER=[7,3,5,1,6,2,4,0];
 const esc=s=>s.replace(/</g,'&lt;');
 function showScreen(html){ setScreen('summary'); summaryEl.innerHTML=html; }
+function nowHexHtml(kw){
+  return `<div class="now-hex"><span class="now-glyph">${glyph(kw)}</span><div class="now-num">${kw}</div></div>`;
+}
 function updateNow(kw,trans,moving){
-  $('nowGlyph1').textContent=glyph(kw);
-  $('nowNum1').textContent=kw;
   const hasTrans=trans!=null;
-  $('nowArrow').style.display=hasTrans?'':'none';
-  $('nowHex2').style.display=hasTrans?'flex':'none';
-  if(hasTrans){ $('nowGlyph2').textContent=glyph(trans); $('nowNum2').textContent=trans; }
+  $('nowRow').innerHTML=nowHexHtml(kw)+(hasTrans?`<span class="now-arrow">→</span>${nowHexHtml(trans)}`:'');
   $('nowName').textContent=hasTrans?`${NAMES[kw]} → ${NAMES[trans]}`:NAMES[kw];
   $('nowDecimal').textContent=(moving&&moving.length)?`${kw}.${moving.join('.')} > ${trans}`:'';
 }
+function updateNowField(top){ // top: ranked array of kw numbers (e.g. the top 3 modal hexagrams)
+  $('nowRow').innerHTML=top.map(nowHexHtml).join('<span class="now-arrow">·</span>');
+  $('nowName').textContent=top.map(kw=>NAMES[kw]).join(' · ');
+  $('nowDecimal').textContent='';
+}
 function resetNow(){
-  $('nowGlyph1').textContent='䷀'; $('nowNum1').textContent='';
-  $('nowArrow').style.display='none'; $('nowHex2').style.display='none';
+  $('nowRow').innerHTML='<div class="now-hex"><span class="now-glyph">䷀</span></div>';
   $('nowName').textContent='PRESS CAST TO OPEN THE FIELD'; $('nowDecimal').textContent='';
 }
 $('btnCast').onclick=()=>{
@@ -760,7 +760,7 @@ $('btnKilo').onclick=()=>{
     `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${triRow(lo)}</div>`+
     `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')} · PRESS CAST TO RETURN</div>`;
   showScreen(kilo.readingHtml);
-  updateNow(+topP[0][0], null, null);
+  updateNowField(topP.map(([k])=>+k));
   ticker.innerHTML=`FIELD · 1000 CASTS · MODE <b>${glyph(+topP[0][0])} ${topP[0][0]}</b> ×${topP[0][1]} · COHERENCE ${coh.toFixed(3)}`;
   logEvent('kilo', q, {top:kilo.top, coherence:+coh.toFixed(4)});
 };
