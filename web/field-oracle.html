@@ -159,6 +159,8 @@
 
   /* ---------- right rail ---------- */
   .rail{display:flex; flex-direction:column; gap:14px}
+  .meter-row{display:flex; gap:10px}
+  .meter-row .meter-block{flex:1; min-width:0}
   .meter-block{
     background:linear-gradient(180deg,#dcd3ba,#c3b89e); border-radius:8px; padding:10px 10px 8px;
     box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 -1px 0 rgba(0,0,0,.15) inset, 0 1px 3px rgba(0,0,0,.25);
@@ -186,8 +188,8 @@
   .now-arrow{font-size:24px; color:var(--phos-dim)}
   .now-name{font-size:14px; letter-spacing:.06em; color:var(--phos-dim); margin-top:12px}
   /* LEDs */
-  .leds{display:grid; grid-template-columns:1fr 1fr; gap:8px 10px}
-  .led{display:flex; align-items:center; gap:7px}
+  .leds{display:grid; grid-template-columns:repeat(4,1fr); gap:6px}
+  .led{display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center}
   .led i{
     width:11px; height:11px; border-radius:50%; flex:none;
     background:var(--led-red-off); box-shadow:0 1px 1px rgba(0,0,0,.4) inset;
@@ -253,8 +255,12 @@
   .qwrap input::placeholder{color:var(--phos-dim)}
   .qwrap input:focus{outline:1px solid var(--phos-dim)}
   .footnote{grid-area:foot; margin-top:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
-  .footlink{cursor:pointer; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:2px}
-  .footlink:hover{color:var(--chassis-deep)}
+  .footlink{
+    cursor:pointer; text-decoration:none; display:inline-flex; align-items:center;
+    padding:5px 14px; border-radius:999px; border:1px solid var(--ink);
+    background:rgba(58,52,42,.08);
+  }
+  .footlink:hover{background:rgba(58,52,42,.18); color:var(--chassis-deep)}
   .footnote .legend{font-weight:400; letter-spacing:.14em; color:#6b6149}
   @media (prefers-reduced-motion:reduce){ .row.fresh{animation:none} }
 
@@ -330,13 +336,20 @@
   </div>
 
   <div class="rail">
-    <div class="meter-block">
-      <div class="meter-face"><canvas id="tiltMeter"></canvas></div>
-      <div class="meter-cap"><span class="legend">Tilt · yin ⟷ yang</span><span class="val" id="tiltVal">50%</span></div>
+    <div class="meter-row">
+      <div class="meter-block">
+        <div class="meter-face"><canvas id="tiltMeter"></canvas></div>
+        <div class="meter-cap"><span class="legend">Tilt · yin ⟷ yang</span><span class="val" id="tiltVal">50%</span></div>
+      </div>
+      <div class="meter-block">
+        <div class="meter-face"><canvas id="churnMeter"></canvas></div>
+        <div class="meter-cap"><span class="legend">Churn · moving</span><span class="val" id="churnVal">25%</span></div>
+      </div>
     </div>
-    <div class="meter-block">
-      <div class="meter-face"><canvas id="churnMeter"></canvas></div>
-      <div class="meter-cap"><span class="legend">Churn · moving</span><span class="val" id="churnVal">25%</span></div>
+
+    <div>
+      <div class="legend" style="margin-bottom:4px">Cast counter</div>
+      <div class="odometer" id="counter">000000</div>
     </div>
 
     <div class="leds">
@@ -344,11 +357,6 @@
       <div class="led" id="ledHot"><i></i><span>HOT LINE</span></div>
       <div class="led" id="ledRun"><i></i><span>TRI RUN</span></div>
       <div class="led amber" id="ledCast"><i></i><span>CAST</span></div>
-    </div>
-
-    <div>
-      <div class="legend" style="margin-bottom:4px">Cast counter</div>
-      <div class="odometer" id="counter">000000</div>
     </div>
   </div>
 
