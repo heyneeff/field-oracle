@@ -38,6 +38,7 @@
     display:grid; grid-template-columns:1fr 236px; column-gap:18px;
     grid-template-areas:
       "name  name"
+      "now   now"
       "crt   rail"
       "trans trans"
       "foot  foot";
@@ -56,11 +57,13 @@
     opacity:.85; border-radius:2px}
   .crt-bezel{grid-area:crt}
   .rail{grid-area:rail}
+  .now{grid-area:now}
   @media(max-width:760px){
     .console{
       grid-template-columns:1fr;
       grid-template-areas:
         "name"
+        "now"
         "crt"
         "trans"
         "rail"
@@ -144,9 +147,6 @@
     padding-bottom:8px; margin:0 0 14px}
   .summary .dim{color:var(--phos-dim)}
   .summary .big{font-size:26px; line-height:1.3}
-  .trunc-strip{display:flex; gap:10px; flex-wrap:wrap; font-size:12px; padding:6px 0 10px;
-    border-bottom:1px solid var(--phos-faint); margin-bottom:10px}
-  .trunc-strip b{color:#ffe9b0}
   .summary table{border-collapse:collapse; font-variant-numeric:tabular-nums}
   .summary td{padding:2px 18px 2px 0}
   .summary table,.summary td,.summary th,.lab table,.lab td,.lab th{color:inherit}
@@ -170,14 +170,20 @@
   .meter-face canvas{position:absolute; inset:0; width:100%; height:100%}
   .meter-cap{display:flex; justify-content:space-between; align-items:baseline}
   .meter-cap .val{font-size:11px; color:var(--ink); font-variant-numeric:tabular-nums}
-  /* now playing */
+  /* now playing — the primary readout, promoted above the CRT */
   .now{
-    background:var(--screen); border-radius:6px; padding:10px 12px; text-align:center;
+    background:var(--screen); border-radius:8px; padding:8px 16px 10px; margin-bottom:14px;
     box-shadow:0 0 14px rgba(0,0,0,.8) inset; color:var(--phos);
     text-shadow:0 0 8px rgba(255,176,0,.6);
   }
-  .now .glyph{font-size:44px; line-height:1.1}
-  .now .name{font-size:11px; letter-spacing:.18em; color:var(--phos-dim); margin-top:2px; min-height:14px}
+  .now-label{font-size:10px; letter-spacing:.2em; color:var(--phos-dim); text-shadow:none; margin-bottom:2px}
+  .now-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .now-glyph{font-size:38px; line-height:1}
+  .now-glyph:empty{display:none}
+  .now-arrow{font-size:18px; color:var(--phos-dim)}
+  .now-arrow:empty{display:none}
+  .now-name{font-size:14px; letter-spacing:.06em; flex:1; min-width:140px}
+  .now-decimal{font-size:16px; letter-spacing:.04em; color:var(--phos-dim)}
   /* LEDs */
   .leds{display:grid; grid-template-columns:1fr 1fr; gap:8px 10px}
   .led{display:flex; align-items:center; gap:7px}
@@ -266,7 +272,10 @@
     .summary [style*="font-size:54px"]{font-size:32px !important}
     .lab .target-g{font-size:40px}
     .lab .cue{font-size:22px; letter-spacing:.2em}
-    .now .glyph{font-size:34px}
+    .now{margin-bottom:8px; padding:6px 12px 8px}
+    .now-glyph{font-size:28px}
+    .now-name{font-size:12px}
+    .now-decimal{font-size:13px}
     .hexgrid{max-width:100%}
     .hexgrid span{font-size:19px}
     .summary [style*="grid-template-columns:repeat(4,1fr)"]{grid-template-columns:repeat(2,1fr) !important}
@@ -290,6 +299,17 @@
     <div class="stripes"></div>
   </div>
 
+  <div class="now" id="now">
+    <div class="now-label" id="nowLabel">STANDBY</div>
+    <div class="now-row">
+      <span class="now-glyph" id="nowGlyph1">䷀</span>
+      <span class="now-arrow" id="nowArrow"></span>
+      <span class="now-glyph" id="nowGlyph2"></span>
+      <span class="now-name" id="nowName">PRESS CAST TO OPEN THE FIELD</span>
+      <span class="now-decimal" id="nowDecimal"></span>
+    </div>
+  </div>
+
   <div class="crt-bezel">
     <div class="crt" id="crt">
       <canvas id="rain" aria-hidden="true"></canvas>
@@ -302,11 +322,6 @@
   </div>
 
   <div class="rail">
-    <div class="now" id="now">
-      <div class="glyph" id="nowGlyph">䷀</div>
-      <div class="name" id="nowName">READY</div>
-    </div>
-
     <div class="meter-block">
       <div class="meter-face"><canvas id="tiltMeter"></canvas></div>
       <div class="meter-cap"><span class="legend">Tilt · yin ⟷ yang</span><span class="val" id="tiltVal">50%</span></div>
@@ -467,8 +482,7 @@ function cast(){
   }
   while(feed.children.length>MAXROWS) feed.removeChild(feed.firstChild);
 
-  $('nowGlyph').textContent=glyph(kw);
-  $('nowName').textContent=`${kw} · ${NAMES[kw]}`;
+  updateNow('CASCADE', kw, moving.length?trans:null, moving.map(m=>m+1));
   $('counter').textContent=String(n).padStart(6,'0');
   $('tiltVal').textContent=Math.round(emaYang*100)+'%';
   $('churnVal').textContent=Math.round(emaMove*100)+'%';
@@ -531,7 +545,7 @@ addEventListener('resize',()=>{}); // canvas re-measured every frame via clientW
 // chance, every instance of it on screen lights up.
 let rainView=false, gridRows=[], curRow=[];
 const rainCv=$('rain'), rg=rainCv.getContext('2d');
-const CELL_W=42, CELL_H=46, PAD=16;
+const GRID_COLS=6, PAD=16;
 function sizeRain(){
   const r=devicePixelRatio||1, w=rainCv.clientWidth, h=rainCv.clientHeight;
   if(rainCv.width!==w*r||rainCv.height!==h*r){
@@ -539,7 +553,9 @@ function sizeRain(){
   }
   return {w,h};
 }
-function gridCols(){ return Math.max(1,Math.floor((rainCv.clientWidth-PAD*2)/CELL_W)); }
+function cellW(){ return (rainCv.clientWidth-PAD*2)/GRID_COLS; }
+function cellH(){ return cellW()*(46/42); } // keep the original cell aspect ratio
+function gridCols(){ return GRID_COLS; }
 function gridPush(kw){
   curRow.push(kw);
   if(curRow.length>=gridCols()){
@@ -550,17 +566,18 @@ function gridPush(kw){
 }
 function drawGrid(){
   const {w,h}=sizeRain();
+  const cw=cellW(), ch=cellH();
   rg.fillStyle='#140f07'; rg.fillRect(0,0,w,h);
   rg.textAlign='center'; rg.textBaseline='middle';
-  rg.font='30px '+getComputedStyle(document.body).fontFamily;
+  rg.font=(cw*0.72)+'px '+getComputedStyle(document.body).fontFamily;
   // coherence per hexagram from the rolling window (baseline = win.length/64)
   const counts={}; win.forEach(k=>counts[k]=(counts[k]||0)+1);
   const rows=[curRow,...gridRows];
-  const maxRows=Math.ceil((h-40)/CELL_H);
+  const maxRows=Math.ceil((h-40)/ch);
   for(let r=0;r<rows.length&&r<maxRows;r++){
-    const y=PAD+18+r*CELL_H;
+    const y=PAD+18+r*ch;
     for(let c=0;c<rows[r].length;c++){
-      const kw=rows[r][c], x=PAD+c*CELL_W+CELL_W/2;
+      const kw=rows[r][c], x=PAD+c*cw+cw/2;
       const hits=counts[kw]||0;
       if(hits>=4){        // strong coherence — the pattern burning through
         rg.fillStyle='#ff6a3c'; rg.shadowColor='#ff5030'; rg.shadowBlur=14;
@@ -611,7 +628,7 @@ $('btnClear').onclick=()=>{ hold(); setScreen('feed');
   gridRows=[]; curRow=[]; if(rainView) drawGrid();
   feed.innerHTML='';
   $('counter').textContent='000000'; $('tiltVal').textContent='50%'; $('churnVal').textContent='25%';
-  $('nowGlyph').textContent='䷀'; $('nowName').textContent='READY';
+  resetNow();
   ['ledRecur','ledHot','ledRun'].forEach(i=>led(i,false));
   ticker.textContent='STANDBY · PRESS CAST TO OPEN THE FIELD'; };
 $('btnRead').onclick=()=>{
@@ -638,10 +655,19 @@ $('btnRead').onclick=()=>{
 const TRIGRAM_ORDER=[7,3,5,1,6,2,4,0];
 const esc=s=>s.replace(/</g,'&lt;');
 function showScreen(html){ setScreen('summary'); summaryEl.innerHTML=html; }
-function truncStrip(pairs){ // pairs: [[kw, note], ...] — a quick-glance hexagram strip above the detail
-  return `<div class="trunc-strip">${pairs.map(([kw,note])=>
-    `<span>${glyph(kw)} <b>${kw}</b> ${esc(NAMES[kw])}${note?' '+esc(note):''}</span>`
-  ).join('<span class="dim"> · </span>')}</div>`;
+function updateNow(label,kw,trans,moving){
+  $('nowLabel').textContent=label;
+  $('nowGlyph1').textContent=glyph(kw);
+  const hasTrans=trans!=null;
+  $('nowArrow').textContent=hasTrans?'→':'';
+  $('nowGlyph2').textContent=hasTrans?glyph(trans):'';
+  $('nowName').textContent=hasTrans?`${kw} ${NAMES[kw]} → ${trans} ${NAMES[trans]}`:`${kw} · ${NAMES[kw]}`;
+  $('nowDecimal').textContent=(moving&&moving.length)?`${kw}.${moving.join('.')} > ${trans}`:'';
+}
+function resetNow(){
+  $('nowLabel').textContent='STANDBY';
+  $('nowGlyph1').textContent='䷀'; $('nowArrow').textContent=''; $('nowGlyph2').textContent='';
+  $('nowName').textContent='PRESS CAST TO OPEN THE FIELD'; $('nowDecimal').textContent='';
 }
 $('btnCast').onclick=()=>{
   const q=$('question').value.trim();
@@ -657,12 +683,8 @@ $('btnCast').onclick=()=>{
   }).reverse().join('');
   const changes=lines.map((v,i)=>v===6?`LINE ${i+1} · OLD YIN ✕ → YANG`:v===9?`LINE ${i+1} · OLD YANG ○ → YIN`:null)
     .filter(Boolean);
-  const decimal = moving.length ? `${kw}.${moving.join('.')} > ${trans}` : `${kw}`;
   showScreen(
     `<h2>SINGLE CAST${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
-    truncStrip([[kw, moving.length?'→ '+trans:'']])+
-    `<div class="big" style="margin-bottom:4px">${decimal}</div>`+
-    `<div class="big" style="margin-bottom:12px">${glyph(kw)}${moving.length?` <span class="dim">→</span> ${glyph(trans)}`:''}</div>`+
     `<div style="display:flex; gap:34px; align-items:center; flex-wrap:wrap">`+
     `<div class="big" style="font-size:56px">${glyph(kw)}</div>`+
     `<div style="font-size:12px; line-height:1.5; letter-spacing:.06em">${pic}</div>`+
@@ -678,6 +700,7 @@ $('btnCast').onclick=()=>{
       `<div style="max-width:56ch; line-height:1.9; font-size:12px" class="dim">${MEAN[trans]}</div>`:
       `<div style="margin-top:14px" class="dim">NO MOVING LINES · THE STATE IS AT REST</div>`)+
     `<div class="dim" style="margin-top:16px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN TO THE STREAM</div>`);
+  updateNow('SINGLE CAST', kw, moving.length?trans:null, moving);
   ticker.innerHTML=`ONE · <b>${glyph(kw)} ${kw} ${NAMES[kw]}</b>${moving.length?` → <b>${trans}</b>`:''}`;
   logEvent('one', q, {kw, trans: moving.length?trans:null, moving});
 };
@@ -710,7 +733,6 @@ $('btnKilo').onclick=()=>{
   }).join('');
   kilo.readingHtml=
     `<h2>FIELD READING · ${N} CASTS${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
-    truncStrip(topP.slice(0,3).map(([k])=>[+k,'']))+
     `<div style="margin-bottom:8px"><span class="btn" data-kv="grid">▦ VIEW THE FIELD GRID</span></div>`+
     `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
     `<div style="display:grid; grid-template-columns:max-content max-content max-content; column-gap:18px; row-gap:2px">${topP.map(([k,c])=>`<span>${glyph(+k)} ${k} ${NAMES[k]}</span><span>×${c}</span><span class="dim">${(c/base).toFixed(1)}× BASELINE</span>`).join('')}</div>`+
@@ -725,6 +747,7 @@ $('btnKilo').onclick=()=>{
     `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${triRow(lo)}</div>`+
     `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')} · PRESS CAST TO RETURN</div>`;
   showScreen(kilo.readingHtml);
+  updateNow('FIELD MODE · 1000 CASTS', +topP[0][0], null, null);
   ticker.innerHTML=`FIELD · 1000 CASTS · MODE <b>${glyph(+topP[0][0])} ${topP[0][0]}</b> ×${topP[0][1]} · COHERENCE ${coh.toFixed(3)}`;
   logEvent('kilo', q, {top:kilo.top, coherence:+coh.toFixed(4)});
 };
@@ -915,7 +938,6 @@ function labResults(){
     casts_per_block:LAB.CASTS, entropy_source:'crypto.getRandomValues',
     results:{INTEND:I,SHAM:S,REST:R}, casts:lab.casts};
   labEl.innerHTML=
-    truncStrip([[lab.target,'TARGET']])+
     `<div class="fine">SESSION COMPLETE · TARGET ${glyph(lab.target)} ${lab.target} ${NAMES[lab.target]} · BASELINE ${(p*100).toFixed(2)}%</div>`+
     `<table><tr><th>CONDITION</th><th>HITS</th><th>RATE</th><th>Z</th></tr>`+
     row('INTEND',I)+row('SHAM (cued intend)',S)+row('REST',R)+`</table>`+
@@ -929,6 +951,7 @@ function labResults(){
     `<div id="labSubmitR" style="margin-top:8px; min-height:18px; font-size:11px; letter-spacing:.1em"></div>`+
     `<div class="fine" style="margin-top:6px">⚗ NEW SESSION · ■ CLOSE</div>`;
   lab.phase='done';
+  updateNow('LAB TARGET', lab.target, null, null);
   ticker.textContent='LAB · RESULTS ON SCREEN';
   logEvent('lab', '', {target:lab.target, verdict});
 }
