@@ -611,8 +611,9 @@ $('btnRead').onclick=()=>{
   summaryEl.innerHTML=
     `<h2>FIELD SUMMARY · ${n} CASTS${q?' · “'+q.replace(/</g,'&lt;').toUpperCase()+'”':''}</h2>`+
     `<div class="big">${top.map(([k])=>glyph(+k)).join(' ')}</div>`+
-    `<table>${top.map(([k,c])=>`<tr><td>PRIMARY ${glyph(+k)} ${k} ${NAMES[k]}</td><td>×${c}</td><td class="dim">${(c/base).toFixed(1)}× BASELINE</td></tr>`).join('')}`+
-    `<tr><td>FLOWING → ${glyph(+tk)} ${tk} ${NAMES[tk]}</td><td>×${tc}</td><td class="dim">${(tc/base).toFixed(1)}× BASELINE</td></tr></table>`+
+    `<div style="display:grid; grid-template-columns:max-content max-content max-content; column-gap:18px; row-gap:2px">`+
+    top.map(([k,c])=>`<span>PRIMARY ${glyph(+k)} ${k} ${NAMES[k]}</span><span>×${c}</span><span class="dim">${(c/base).toFixed(1)}× BASELINE</span>`).join('')+
+    `<span>FLOWING → ${glyph(+tk)} ${tk} ${NAMES[tk]}</span><span>×${tc}</span><span class="dim">${(tc/base).toFixed(1)}× BASELINE</span></div>`+
     `<div style="margin-top:12px">TILT ${emaYang>.5?'YANG':'YIN'} ${Math.abs(emaYang-.5)*200|0}%`+
     ` <span class="dim">·</span> CHURN ${Math.round(emaMove*100)}% <span class="dim">(BASELINE 25%)</span></div>`+
     `<div>HOTTEST THREAD · LINE ${hotLine+1} MOVED ${hotTotals[hotLine]}× <span class="dim">(${Math.round(hotTotals[hotLine]/n*100)}%, BASELINE 25%)</span></div>`+
@@ -687,27 +688,27 @@ $('btnKilo').onclick=()=>{
   kilo={casts:castLog, top:topP.map(([k])=>+k), counts:prim, q};
   const H=Object.values(prim).reduce((s,c)=>s+(c/N)**2,0);
   const coh=(H-1/64)/(1-1/64);
-  const triRow=o=>TRIGRAM_ORDER.map(t=>`<td>${TRIGRAMS[t].slice(0,4)}</td><td class="dim">${Math.round((o[t]||0)/N*100)}%</td>`).join('');
+  const triRow=o=>TRIGRAM_ORDER.map(t=>`<span>${TRIGRAMS[t].slice(0,4)}</span><span class="dim">${Math.round((o[t]||0)/N*100)}%</span>`).join('');
   const yangPct=yangTotal/(N*6)*100;
   const lineCells=hotL.map((c,i)=>{
     const pct=c/N*100, hotCls=Math.abs(pct-25)>=2.8; // ~2σ at n=1000
-    return `<td${hotCls?' style="color:#ff6a3c"':''}>L${i+1}</td><td class="${hotCls?'':'dim'}">${pct.toFixed(1)}%</td>`;
+    return `<span${hotCls?' style="color:#ff6a3c"':''}>L${i+1}</span><span class="${hotCls?'':'dim'}">${pct.toFixed(1)}%</span>`;
   }).join('');
   kilo.readingHtml=
     `<h2>FIELD READING · ${N} CASTS${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
     truncStrip(topP.slice(0,3).map(([k])=>[+k,'']))+
     `<div style="margin-bottom:8px"><span class="btn" data-kv="grid">▦ VIEW THE FIELD GRID</span></div>`+
     `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
-    `<table>${topP.map(([k,c])=>`<tr><td>${glyph(+k)} ${k} ${NAMES[k]}</td><td>×${c}</td><td class="dim">${(c/base).toFixed(1)}× BASELINE</td></tr>`).join('')}</table>`+
+    `<div style="display:grid; grid-template-columns:max-content max-content max-content; column-gap:18px; row-gap:2px">${topP.map(([k,c])=>`<span>${glyph(+k)} ${k} ${NAMES[k]}</span><span>×${c}</span><span class="dim">${(c/base).toFixed(1)}× BASELINE</span>`).join('')}</div>`+
     `<div style="margin-top:10px">FLOWING → ${topT.map(([k,c])=>`${glyph(+k)} ${k} ×${c}`).join(' · ')}</div>`+
     `<div style="margin-top:10px">COHERENCE ${coh.toFixed(4)} <span class="dim">(NOISE FLOOR ~0.01–0.03 AT N=1000)</span></div>`+
     `<div>TILT ${yangPct>=50?'YANG':'YIN'} · ${yangPct.toFixed(1)}% YANG LINES</div>`+
     `<div style="margin-top:10px; font-size:11px" class="dim">CHANGING LINES BY POSITION · BASELINE 25% · RED = BEYOND ~2σ</div>`+
-    `<div style="overflow-x:auto"><table><tr>${lineCells}</tr></table></div>`+
+    `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${lineCells}</div>`+
     `<div style="margin-top:12px; font-size:11px" class="dim">UPPER TRIGRAM WEATHER</div>`+
-    `<div style="overflow-x:auto"><table><tr>${triRow(up)}</tr></table></div>`+
+    `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${triRow(up)}</div>`+
     `<div style="font-size:11px" class="dim">LOWER TRIGRAM WEATHER</div>`+
-    `<div style="overflow-x:auto"><table><tr>${triRow(lo)}</tr></table></div>`+
+    `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${triRow(lo)}</div>`+
     `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')} · PRESS CAST TO RETURN</div>`;
   showScreen(kilo.readingHtml);
   ticker.innerHTML=`FIELD · 1000 CASTS · MODE <b>${glyph(+topP[0][0])} ${topP[0][0]}</b> ×${topP[0][1]} · COHERENCE ${coh.toFixed(3)}`;
