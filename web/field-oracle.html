@@ -182,19 +182,22 @@
   .meter-cap .val{font-size:11px; color:var(--ink); font-variant-numeric:tabular-nums}
   /* now playing — the primary readout, promoted above the CRT */
   .now{
-    background:var(--screen); border-radius:8px; padding:16px 18px 14px; margin-bottom:14px;
+    background:var(--screen); border-radius:8px; padding:14px 18px 12px; margin-bottom:14px;
     box-shadow:0 0 14px rgba(0,0,0,.8) inset; color:var(--phos);
     text-shadow:0 0 8px rgba(255,176,0,.6);
     text-align:center;
   }
-  .now-decimal{font-size:28px; font-weight:800; letter-spacing:.04em; margin-bottom:12px}
+  .now-decimal{font-size:28px; font-weight:800; letter-spacing:.04em; margin-bottom:8px}
   .now-decimal:empty{display:none; margin-bottom:0}
   .now-row{display:flex; align-items:center; justify-content:center; gap:22px; flex-wrap:wrap}
   .now-hex{display:flex; flex-direction:column; align-items:center; gap:4px}
-  .now-glyph{font-size:68px; line-height:1}
+  .now-glyph{font-size:68px; line-height:1.15}
   .now-num{font-size:15px; letter-spacing:.1em; color:var(--phos-dim)}
   .now-arrow{font-size:24px; color:var(--phos-dim)}
-  .now-name{font-size:14px; letter-spacing:.06em; color:var(--phos-dim); margin-top:12px}
+  .now-name{font-size:14px; letter-spacing:.06em; color:var(--phos-dim); margin-top:8px}
+  .now-row.triple{gap:14px}
+  .now-row.triple .now-glyph{font-size:42px}
+  .now-row.triple .now-num{font-size:12px}
   /* LEDs */
   .leds{display:grid; grid-template-columns:repeat(4,1fr); gap:6px}
   .led{display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center}
@@ -242,6 +245,12 @@
   .key.rec{color:#7d2314}
   .key.donate{color:#7d2314; background:linear-gradient(180deg,#f0cfc4,#e0a898); border-color:#a8331e}
   .key.donate:active{box-shadow:0 0 0 #a8331e, 0 1px 0 rgba(255,255,255,.5) inset}
+  @keyframes donatePulse{
+    0%,100%{box-shadow:0 3px 0 #a8331e, 0 1px 0 rgba(255,255,255,.7) inset, 0 0 0 rgba(255,106,60,0)}
+    50%{box-shadow:0 3px 0 #a8331e, 0 1px 0 rgba(255,255,255,.7) inset, 0 0 14px rgba(255,106,60,.85)}
+  }
+  .key.donate.nudge{animation:donatePulse 2.4s ease-in-out infinite}
+  @media (prefers-reduced-motion:reduce){ .key.donate.nudge{animation:none} }
   .key.key-primary{
     flex:2; font-size:15px; padding:20px 16px 17px; letter-spacing:.18em;
     box-shadow:0 4px 0 #8f8468, 0 1px 0 rgba(255,255,255,.7) inset;
@@ -294,11 +303,14 @@
     .lab .target-g{font-size:40px}
     .lab .cue{font-size:22px; letter-spacing:.2em}
     .now{margin-bottom:8px; padding:10px 12px 8px}
-    .now-decimal{font-size:20px; margin-bottom:8px}
+    .now-decimal{font-size:20px; margin-bottom:6px}
     .now-row{gap:12px}
     .now-glyph{font-size:44px}
     .now-num{font-size:12px}
-    .now-name{font-size:11px; margin-top:8px}
+    .now-name{font-size:11px; margin-top:6px}
+    .now-row.triple{gap:8px}
+    .now-row.triple .now-glyph{font-size:28px}
+    .now-row.triple .now-num{font-size:10px}
     .hexgrid{max-width:100%}
     .hexgrid span{font-size:19px}
     .summary [style*="grid-template-columns:repeat(4,1fr)"]{grid-template-columns:repeat(2,1fr) !important}
@@ -440,6 +452,19 @@ document.getElementById('question').addEventListener('change',()=>{
   const q=document.getElementById('question').value.trim();
   if(q) logEvent('question', q, {});
 });
+
+// ---- gentle donate nudge for anyone getting real use out of this ----
+const DONATE_NUDGE_AT=15;
+function checkDonateNudge(){
+  const n=+(localStorage.getItem('fo64_usage_count')||0);
+  document.querySelector('.key.donate')?.classList.toggle('nudge', n>=DONATE_NUDGE_AT);
+}
+function bumpUsage(){
+  const n=+(localStorage.getItem('fo64_usage_count')||0)+1;
+  localStorage.setItem('fo64_usage_count', String(n));
+  checkDonateNudge();
+}
+checkDonateNudge();
 
 // ---- state ----
 let running=false, timer=null, n=0;
@@ -696,16 +721,19 @@ function nowHexHtml(kw){
 }
 function updateNow(kw,trans,moving){
   const hasTrans=trans!=null;
+  $('nowRow').className='now-row';
   $('nowRow').innerHTML=nowHexHtml(kw)+(hasTrans?`<span class="now-arrow">→</span>${nowHexHtml(trans)}`:'');
   $('nowName').textContent=hasTrans?`${NAMES[kw]} → ${NAMES[trans]}`:NAMES[kw];
   $('nowDecimal').textContent=(moving&&moving.length)?`${kw}.${moving.join('.')} > ${trans}`:'';
 }
 function updateNowField(top){ // top: ranked array of kw numbers (e.g. the top 3 modal hexagrams)
+  $('nowRow').className='now-row'+(top.length>2?' triple':'');
   $('nowRow').innerHTML=top.map(nowHexHtml).join('<span class="now-arrow">·</span>');
   $('nowName').textContent=top.map(kw=>NAMES[kw]).join(' · ');
   $('nowDecimal').textContent='';
 }
 function resetNow(){
+  $('nowRow').className='now-row';
   $('nowRow').innerHTML='<div class="now-hex"><span class="now-glyph">䷀</span></div>';
   $('nowName').textContent='PRESS CAST TO OPEN THE FIELD'; $('nowDecimal').textContent='';
 }
@@ -732,6 +760,7 @@ $('btnCast').onclick=()=>{
   updateNow(kw, moving.length?trans:null, moving);
   ticker.textContent='SINGLE CAST · RESULT ABOVE · PRESS CAST TO CAST AGAIN';
   logEvent('one', q, {kw, trans: moving.length?trans:null, moving});
+  bumpUsage();
 };
 let kilo=null; // last field reading, for grid/reading toggle
 $('btnKilo').onclick=()=>{
@@ -779,6 +808,7 @@ $('btnKilo').onclick=()=>{
   updateNowField(topP.map(([k])=>+k));
   ticker.innerHTML=`FIELD · 1000 CASTS · MODE <b>${glyph(+topP[0][0])} ${topP[0][0]}</b> ×${topP[0][1]} · COHERENCE ${coh.toFixed(3)}`;
   logEvent('kilo', q, {top:kilo.top, coherence:+coh.toFixed(4)});
+  bumpUsage();
 };
 function kiloGrid(){
   const [a,b,c]=kilo.top;
@@ -1015,6 +1045,7 @@ function labResults(){
   updateNow(lab.target, null, null);
   ticker.textContent='LAB · RESULTS ON SCREEN';
   logEvent('lab', '', {target:lab.target, verdict});
+  bumpUsage();
 }
 labEl.addEventListener('click', e=>{
   const s=e.target.closest('[data-submit]');
