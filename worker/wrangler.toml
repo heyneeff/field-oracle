@@ -1,0 +1,8 @@
+name = "field-oracle-api"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "field-oracle"
+database_id = "cd5f02f3-2aeb-470c-a771-77e53d2ef91f"

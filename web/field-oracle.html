@@ -1,5 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>FIELD ORACLE FO-64</title>
 <style>
   /* Yijing Hexagram Symbols (U+4DC0–4DFF) subset — many mobile system fonts
@@ -13,6 +14,7 @@
     font-display:swap;
   }
   :root{
+    color-scheme:dark;
     --room:#171310;
     --chassis:#cbc1a9; --chassis-hi:#e6ddc6; --chassis-lo:#6e6350; --chassis-deep:#4a4236;
     --screen:#140f07; --phos:#ffb000; --phos-dim:#8a6420; --phos-faint:#4d3812;
@@ -33,21 +35,38 @@
     box-shadow:0 2px 0 var(--chassis-hi) inset, 0 -3px 0 var(--chassis-lo) inset,
       0 24px 60px rgba(0,0,0,.65), 0 4px 12px rgba(0,0,0,.5);
     width:min(880px,100%); box-sizing:border-box;
+    display:grid; grid-template-columns:1fr 236px; column-gap:18px;
+    grid-template-areas:
+      "name  name"
+      "crt   rail"
+      "trans trans"
+      "foot  foot";
   }
   /* silkscreen legends */
   .legend{
     font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--ink);
     text-shadow:0 1px 0 rgba(255,255,255,.5); font-weight:700;
   }
-  .nameplate{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; gap:12px; flex-wrap:wrap}
+  .nameplate{grid-area:name; display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; gap:12px; flex-wrap:wrap}
   .nameplate .brand{font-size:17px; letter-spacing:.34em; font-weight:800; color:var(--ink);
     text-shadow:0 1px 0 rgba(255,255,255,.55)}
   .nameplate .brand small{font-weight:400; letter-spacing:.22em; font-size:10px; color:#5d543f}
   .stripes{flex:1; height:8px; min-width:60px;
     background:repeating-linear-gradient(90deg,#b4482f 0 5px,transparent 5px 9px,#c07a2c 9px 14px,transparent 14px 18px,#8a8a45 18px 23px,transparent 23px 40px);
     opacity:.85; border-radius:2px}
-  .deck{display:grid; grid-template-columns:1fr 236px; gap:18px}
-  @media(max-width:760px){ .deck{grid-template-columns:1fr} }
+  .crt-bezel{grid-area:crt}
+  .rail{grid-area:rail}
+  @media(max-width:760px){
+    .console{
+      grid-template-columns:1fr;
+      grid-template-areas:
+        "name"
+        "crt"
+        "trans"
+        "foot";
+    }
+    .rail{display:none}
+  }
 
   /* ---------- CRT ---------- */
   .crt-bezel{
@@ -125,11 +144,15 @@
     padding-bottom:8px; margin:0 0 14px}
   .summary .dim{color:var(--phos-dim)}
   .summary .big{font-size:26px; line-height:1.3}
+  .trunc-strip{display:flex; gap:10px; flex-wrap:wrap; font-size:12px; padding:6px 0 10px;
+    border-bottom:1px solid var(--phos-faint); margin-bottom:10px}
+  .trunc-strip b{color:#ffe9b0}
   .summary table{border-collapse:collapse; font-variant-numeric:tabular-nums}
   .summary td{padding:2px 18px 2px 0}
-  .summary .btn{cursor:pointer; border:1px solid var(--phos-faint); border-radius:3px;
+  .summary table,.summary td,.summary th,.lab table,.lab td,.lab th{color:inherit}
+  .summary .btn,.lab .btn{cursor:pointer; border:1px solid var(--phos-faint); border-radius:3px;
     padding:2px 10px; display:inline-block; margin:2px 4px 2px 0; user-select:none}
-  .summary .btn:hover{border-color:var(--phos-dim); color:#ffe9b0}
+  .summary .btn:hover,.lab .btn:hover{border-color:var(--phos-dim); color:#ffe9b0}
   .hexgrid{display:grid; grid-template-columns:repeat(8,1fr); gap:2px; max-width:420px}
   .hexgrid span{cursor:pointer; font-size:24px; text-align:center; padding:2px; border-radius:3px}
   .hexgrid span:hover{background:rgba(255,176,0,.14)}
@@ -176,11 +199,17 @@
 
   /* ---------- transport ---------- */
   .transport{
-    display:flex; align-items:center; gap:14px; margin-top:18px; flex-wrap:wrap;
+    grid-area:trans;
+    margin-top:18px;
     border-top:2px solid rgba(0,0,0,.12); padding-top:14px;
     box-shadow:0 1px 0 rgba(255,255,255,.45);
   }
-  .keybank{display:flex; gap:2px}
+  .transport-primary{display:flex; gap:10px; margin-bottom:10px}
+  .transport-secondary{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(84px,1fr)); gap:6px;
+    margin-bottom:12px;
+  }
+  .transport-controls{display:flex; align-items:center; gap:14px; flex-wrap:wrap}
   button.key{
     font-family:var(--mono); font-size:10px; letter-spacing:.14em; font-weight:700;
     color:var(--ink); text-shadow:0 1px 0 rgba(255,255,255,.5);
@@ -188,10 +217,16 @@
     border:1px solid #8f8468; border-radius:3px; padding:12px 16px 10px; cursor:pointer;
     box-shadow:0 3px 0 #8f8468, 0 1px 0 rgba(255,255,255,.7) inset;
     transition:transform .05s, box-shadow .05s;
+    width:100%; box-sizing:border-box;
   }
   button.key:active, button.key.down{transform:translateY(3px); box-shadow:0 0 0 #8f8468, 0 1px 0 rgba(255,255,255,.5) inset}
   button.key:focus-visible{outline:2px solid var(--led-red); outline-offset:2px}
   button.key.rec{color:#7d2314}
+  button.key.key-primary{
+    flex:2; font-size:15px; padding:20px 16px 17px; letter-spacing:.18em;
+    box-shadow:0 4px 0 #8f8468, 0 1px 0 rgba(255,255,255,.7) inset;
+  }
+  button.key.key-primary:active, button.key.key-primary.down{box-shadow:0 1px 0 #8f8468, 0 1px 0 rgba(255,255,255,.5) inset}
   .speed{display:flex; align-items:center; gap:8px}
   .speed input[type=range]{width:110px; accent-color:var(--led-red)}
   .qwrap{flex:1; min-width:160px; display:flex; align-items:center; gap:8px}
@@ -200,9 +235,11 @@
     background:var(--screen); border:none; border-radius:4px; padding:9px 12px;
     box-shadow:0 0 8px rgba(0,0,0,.7) inset; text-shadow:0 0 5px rgba(255,176,0,.5);
   }
-  .qwrap input::placeholder{color:var(--phos-faint)}
+  .qwrap input::placeholder{color:var(--phos-dim)}
   .qwrap input:focus{outline:1px solid var(--phos-dim)}
-  .footnote{margin-top:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
+  .footnote{grid-area:foot; margin-top:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
+  .footlink{cursor:pointer; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:2px}
+  .footlink:hover{color:var(--chassis-deep)}
   .footnote .legend{font-weight:400; letter-spacing:.14em; color:#6b6149}
   @media (prefers-reduced-motion:reduce){ .row.fresh{animation:none} }
 
@@ -211,7 +248,6 @@
     body{padding:12px 8px}
     .console{padding:16px 14px 14px; border-radius:10px}
     .nameplate .brand{font-size:14px; letter-spacing:.24em}
-    .deck{gap:12px}
     .summary,.lab{padding:16px 14px}
     .summary h2{font-size:11px; letter-spacing:.2em}
     .summary .big{font-size:34px !important}
@@ -224,9 +260,12 @@
     .hexgrid span{font-size:19px}
     .summary [style*="grid-template-columns:repeat(4,1fr)"]{grid-template-columns:repeat(2,1fr) !important}
     .summary [style*="display:flex; gap:34px"]{gap:14px !important}
-    .transport{gap:8px; margin-top:14px; padding-top:12px}
-    .keybank{flex-wrap:wrap}
-    button.key{padding:9px 10px 8px; font-size:9px}
+    .transport{margin-top:14px; padding-top:12px}
+    .transport-primary{gap:8px; margin-bottom:8px}
+    .transport-secondary{grid-template-columns:repeat(3,1fr); gap:5px; margin-bottom:10px}
+    button.key{padding:9px 6px 8px; font-size:9px}
+    button.key.key-primary{font-size:12px; padding:16px 10px 13px}
+    .transport-controls{gap:8px}
     .speed{order:3; width:100%}
     .qwrap{order:2}
     .footnote{font-size:0}
@@ -240,70 +279,75 @@
     <div class="stripes"></div>
   </div>
 
-  <div class="deck">
-    <div class="crt-bezel">
-      <div class="crt" id="crt">
-        <canvas id="rain" aria-hidden="true"></canvas>
-        <div class="feed" id="feed" aria-live="off"></div>
-        <div class="summary" id="summary"></div>
-        <div class="lab" id="lab"></div>
-        <div class="summary" id="learn"></div>
-        <div class="ticker" id="ticker">STANDBY · PRESS CAST TO OPEN THE FIELD</div>
-      </div>
+  <div class="crt-bezel">
+    <div class="crt" id="crt">
+      <canvas id="rain" aria-hidden="true"></canvas>
+      <div class="feed" id="feed" aria-live="off"></div>
+      <div class="summary" id="summary"></div>
+      <div class="lab" id="lab"></div>
+      <div class="summary" id="learn"></div>
+      <div class="ticker" id="ticker">STANDBY · PRESS CAST TO OPEN THE FIELD</div>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div class="now" id="now">
+      <div class="glyph" id="nowGlyph">䷀</div>
+      <div class="name" id="nowName">READY</div>
     </div>
 
-    <div class="rail">
-      <div class="now" id="now">
-        <div class="glyph" id="nowGlyph">䷀</div>
-        <div class="name" id="nowName">READY</div>
-      </div>
+    <div class="meter-block">
+      <div class="meter-face"><canvas id="tiltMeter"></canvas></div>
+      <div class="meter-cap"><span class="legend">Tilt · yin ⟷ yang</span><span class="val" id="tiltVal">50%</span></div>
+    </div>
+    <div class="meter-block">
+      <div class="meter-face"><canvas id="churnMeter"></canvas></div>
+      <div class="meter-cap"><span class="legend">Churn · moving</span><span class="val" id="churnVal">25%</span></div>
+    </div>
 
-      <div class="meter-block">
-        <div class="meter-face"><canvas id="tiltMeter"></canvas></div>
-        <div class="meter-cap"><span class="legend">Tilt · yin ⟷ yang</span><span class="val" id="tiltVal">50%</span></div>
-      </div>
-      <div class="meter-block">
-        <div class="meter-face"><canvas id="churnMeter"></canvas></div>
-        <div class="meter-cap"><span class="legend">Churn · moving</span><span class="val" id="churnVal">25%</span></div>
-      </div>
+    <div class="leds">
+      <div class="led" id="ledRecur"><i></i><span>RECUR</span></div>
+      <div class="led" id="ledHot"><i></i><span>HOT LINE</span></div>
+      <div class="led" id="ledRun"><i></i><span>TRI RUN</span></div>
+      <div class="led amber" id="ledCast"><i></i><span>CAST</span></div>
+    </div>
 
-      <div class="leds">
-        <div class="led" id="ledRecur"><i></i><span>RECUR</span></div>
-        <div class="led" id="ledHot"><i></i><span>HOT LINE</span></div>
-        <div class="led" id="ledRun"><i></i><span>TRI RUN</span></div>
-        <div class="led amber" id="ledCast"><i></i><span>CAST</span></div>
-      </div>
-
-      <div>
-        <div class="legend" style="margin-bottom:4px">Cast counter</div>
-        <div class="odometer" id="counter">000000</div>
-      </div>
+    <div>
+      <div class="legend" style="margin-bottom:4px">Cast counter</div>
+      <div class="odometer" id="counter">000000</div>
     </div>
   </div>
 
   <div class="transport">
-    <div class="keybank">
-      <button class="key" id="btnOne">① ONE</button>
-      <button class="key" id="btnKilo">▦ 1000</button>
-      <button class="key rec" id="btnCast">▶ CAST</button>
-      <button class="key" id="btnHold">‖ HOLD</button>
+    <div class="transport-primary">
+      <button class="key rec key-primary" id="btnCast">▶ CAST</button>
+    </div>
+    <div class="transport-secondary">
+      <button class="key" id="btnKilo">▦ CAST ×1000</button>
+      <button class="key" id="btnStop">■ STOP</button>
       <button class="key" id="btnRead">■ READ FIELD</button>
       <button class="key" id="btnClear">⏏ CLEAR</button>
-      <button class="key" id="btnRain">⋮ RAIN</button>
+      <button class="key" id="btnMatrix">⋮ MATRIX</button>
       <button class="key" id="btnLab">⚗ LAB</button>
       <button class="key" id="btnLearn">✎ LEARN</button>
     </div>
-    <div class="speed">
-      <span class="legend">Speed</span>
-      <input type="range" id="speed" min="0" max="100" value="42" aria-label="cast speed">
-    </div>
-    <div class="qwrap">
-      <span class="legend">Question</span>
-      <input id="question" type="text" placeholder="anchor the field…" spellcheck="false">
+    <div class="transport-controls">
+      <div class="speed">
+        <span class="legend">Speed</span>
+        <input type="range" id="speed" min="0" max="100" value="42" aria-label="cast speed">
+      </div>
+      <div class="qwrap">
+        <span class="legend">Question</span>
+        <input id="question" type="text" placeholder="type your question…" spellcheck="false">
+      </div>
     </div>
   </div>
   <div class="footnote">
     <span class="legend">Three-coin method · King Wen sequence · entropy: OS (crypto.getRandomValues)</span>
+    <span style="display:flex; gap:14px">
+      <span class="legend footlink" id="btnSync">🔑 SYNC</span>
+      <span class="legend footlink" id="btnPool">⌘ POOL</span>
+    </span>
   </div>
 </div>
 
@@ -321,6 +365,30 @@ const NAMES = ["","THE CREATIVE","THE RECEPTIVE","DIFFICULTY AT THE BEGINNING","
 
 const $ = id => document.getElementById(id);
 const feed=$('feed'), ticker=$('ticker'), summaryEl=$('summary');
+
+// ---- backend: Cloudflare Worker + D1 (worker/README.md) ----
+// Fill in after `wrangler deploy`. Until then API calls fail silently —
+// the console works fully offline/local either way.
+const API = 'https://field-oracle-api.heyneeff.workers.dev';
+function getSyncKey(){
+  let k=localStorage.getItem('fo64_sync_key');
+  if(!k){
+    const b=new Uint8Array(10); crypto.getRandomValues(b);
+    const hex=[...b].map(x=>x.toString(16).padStart(2,'0')).join('').toUpperCase();
+    k=hex.match(/.{1,4}/g).join('-');
+    localStorage.setItem('fo64_sync_key',k);
+  }
+  return k;
+}
+function setSyncKey(k){ localStorage.setItem('fo64_sync_key',k); }
+function logEvent(kind,question,summary){
+  fetch(API+'/api/log',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({sync_key:getSyncKey(),kind,question:question||'',summary})}).catch(()=>{});
+}
+document.getElementById('question').addEventListener('change',()=>{
+  const q=document.getElementById('question').value.trim();
+  if(q) logEvent('question', q, {});
+});
 
 // ---- state ----
 let running=false, timer=null, n=0;
@@ -496,36 +564,45 @@ function drawGrid(){
 function setRainView(on){
   rainView=on;
   $('crt').classList.toggle('rain-view',on);
-  $('btnRain').classList.toggle('down',on);
+  $('btnMatrix').classList.toggle('down',on);
   if(on) drawGrid();
 }
-$('btnRain').onclick=()=>setRainView(!rainView);
+$('btnMatrix').onclick=()=>setRainView(!rainView);
 addEventListener('resize',()=>{ if(rainView) drawGrid(); });
+
+// ---- screen exclusivity: exactly one of feed/summary/lab/learn is ever visible ----
+let activeScreen='feed';
+function setScreen(which){
+  if(which!=='feed' && running) hold();
+  if(which!=='lab' && lab) labStop();
+  summaryEl.classList.toggle('on', which==='summary');
+  labEl.classList.toggle('on', which==='lab');
+  learnEl.classList.toggle('on', which==='learn');
+  $('btnLearn').classList.toggle('down', which==='learn');
+  activeScreen=which;
+}
 
 // ---- transport ----
 function interval(){ const v=+$('speed').value; return 1500 - v*14.5; } // 1500ms .. 50ms
 function loop(){ if(!running) return; cast(); timer=setTimeout(loop, interval()); }
-function start(){ if(running) return; running=true; summaryEl.classList.remove('on');
-  const le=document.getElementById('learn'); le.classList.remove('on');
-  $('btnLearn')&&$('btnLearn').classList.remove('down'); if(typeof learnOpen!=='undefined') learnOpen=false;
-  led('ledCast',true); $('btnCast').classList.add('down'); $('btnHold').classList.remove('down'); loop(); }
+function start(){ if(running) return; running=true;
+  led('ledCast',true); $('btnStop').classList.remove('down'); loop(); }
 function hold(){ running=false; clearTimeout(timer); led('ledCast',false);
-  $('btnCast').classList.remove('down'); $('btnHold').classList.add('down');
+  $('btnStop').classList.add('down');
   ticker.innerHTML='HOLD · FIELD PAUSED AT CAST '+n; }
-$('btnCast').onclick=start;
-$('btnHold').onclick=hold;
-$('btnClear').onclick=()=>{ hold(); $('btnHold').classList.remove('down');
+$('btnStop').onclick=()=>{ running ? hold() : start(); setScreen('feed'); };
+$('btnClear').onclick=()=>{ hold(); setScreen('feed');
   n=0; emaYang=.5; emaMove=.25; win=[]; lineRun=[0,0,0,0,0,0]; upperRun=0; lastUpper=null;
   allPrimary={}; allTrans={}; hotTotals=[0,0,0,0,0,0];
   gridRows=[]; curRow=[]; if(rainView) drawGrid();
-  feed.innerHTML=''; summaryEl.classList.remove('on');
+  feed.innerHTML='';
   $('counter').textContent='000000'; $('tiltVal').textContent='50%'; $('churnVal').textContent='25%';
   $('nowGlyph').textContent='䷀'; $('nowName').textContent='READY';
   ['ledRecur','ledHot','ledRun'].forEach(i=>led(i,false));
   ticker.textContent='STANDBY · PRESS CAST TO OPEN THE FIELD'; };
 $('btnRead').onclick=()=>{
   if(!n){ ticker.textContent='NO FIELD YET · PRESS CAST FIRST'; return; }
-  hold(); $('btnHold').classList.remove('down');
+  setScreen('summary');
   const base=n/64;
   const top=Object.entries(allPrimary).sort((a,b)=>b[1]-a[1]).slice(0,3);
   const [tk,tc]=Object.entries(allTrans).sort((a,b)=>b[1]-a[1])[0];
@@ -540,15 +617,18 @@ $('btnRead').onclick=()=>{
     ` <span class="dim">·</span> CHURN ${Math.round(emaMove*100)}% <span class="dim">(BASELINE 25%)</span></div>`+
     `<div>HOTTEST THREAD · LINE ${hotLine+1} MOVED ${hotTotals[hotLine]}× <span class="dim">(${Math.round(hotTotals[hotLine]/n*100)}%, BASELINE 25%)</span></div>`+
     `<div class="dim" style="margin-top:14px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RESUME · CLEAR TO ERASE THE TAPE</div>`;
-  summaryEl.classList.add('on');
   ticker.textContent='READ · FIELD SUMMARY ON SCREEN';
 };
 // ---- single throw & 1000-cast field reading (pure: don't touch cascade state) ----
 const TRIGRAM_ORDER=[7,3,5,1,6,2,4,0];
 const esc=s=>s.replace(/</g,'&lt;');
-function showScreen(html){ if(lab) labStop(); hold(); $('btnHold').classList.remove('down');
-  summaryEl.innerHTML=html; summaryEl.classList.add('on'); }
-$('btnOne').onclick=()=>{
+function showScreen(html){ setScreen('summary'); summaryEl.innerHTML=html; }
+function truncStrip(pairs){ // pairs: [[kw, note], ...] — a quick-glance hexagram strip above the detail
+  return `<div class="trunc-strip">${pairs.map(([kw,note])=>
+    `<span>${glyph(kw)} <b>${kw}</b> ${esc(NAMES[kw])}${note?' '+esc(note):''}</span>`
+  ).join('<span class="dim"> · </span>')}</div>`;
+}
+$('btnCast').onclick=()=>{
   const q=$('question').value.trim();
   const lines=toss(), kw=kwOf(lines);
   const moving=lines.map((v,i)=>v===6||v===9?i+1:0).filter(Boolean);
@@ -565,6 +645,7 @@ $('btnOne').onclick=()=>{
   const decimal = moving.length ? `${kw}.${moving.join('.')} > ${trans}` : `${kw}`;
   showScreen(
     `<h2>SINGLE CAST${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
+    truncStrip([[kw, moving.length?'→ '+trans:'']])+
     `<div class="big" style="margin-bottom:4px">${decimal}</div>`+
     `<div class="big" style="margin-bottom:12px">${glyph(kw)}${moving.length?` <span class="dim">→</span> ${glyph(trans)}`:''}</div>`+
     `<div style="display:flex; gap:34px; align-items:center; flex-wrap:wrap">`+
@@ -583,6 +664,7 @@ $('btnOne').onclick=()=>{
       `<div style="margin-top:14px" class="dim">NO MOVING LINES · THE STATE IS AT REST</div>`)+
     `<div class="dim" style="margin-top:16px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN TO THE STREAM</div>`);
   ticker.innerHTML=`ONE · <b>${glyph(kw)} ${kw} ${NAMES[kw]}</b>${moving.length?` → <b>${trans}</b>`:''}`;
+  logEvent('one', q, {kw, trans: moving.length?trans:null, moving});
 };
 let kilo=null; // last field reading, for grid/reading toggle
 $('btnKilo').onclick=()=>{
@@ -613,6 +695,7 @@ $('btnKilo').onclick=()=>{
   }).join('');
   kilo.readingHtml=
     `<h2>FIELD READING · ${N} CASTS${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
+    truncStrip(topP.slice(0,3).map(([k])=>[+k,'']))+
     `<div style="margin-bottom:8px"><span class="btn" data-kv="grid">▦ VIEW THE FIELD GRID</span></div>`+
     `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
     `<table>${topP.map(([k,c])=>`<tr><td>${glyph(+k)} ${k} ${NAMES[k]}</td><td>×${c}</td><td class="dim">${(c/base).toFixed(1)}× BASELINE</td></tr>`).join('')}</table>`+
@@ -628,6 +711,7 @@ $('btnKilo').onclick=()=>{
     `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')} · PRESS CAST TO RETURN</div>`;
   showScreen(kilo.readingHtml);
   ticker.innerHTML=`FIELD · 1000 CASTS · MODE <b>${glyph(+topP[0][0])} ${topP[0][0]}</b> ×${topP[0][1]} · COHERENCE ${coh.toFixed(3)}`;
+  logEvent('kilo', q, {top:kilo.top, coherence:+coh.toFixed(4)});
 };
 function kiloGrid(){
   const [a,b,c]=kilo.top;
@@ -651,6 +735,89 @@ summaryEl.addEventListener('click',e=>{
   if(v.dataset.kv==='grid') kiloGrid(); else showScreen(kilo.readingHtml);
 });
 
+// ---- SYNC: anonymous cross-device log · POOL: public LAB aggregate ----
+function syncScreen(status){
+  const key=getSyncKey();
+  return `<h2>🔑 SYNC</h2>`+
+    `<div style="max-width:56ch; line-height:1.9">Your reading history (single casts, 1000-cast readings,
+    LAB sessions) is saved under this key. Anyone who has the key can read that log — treat it like a
+    password. Save it somewhere safe to pull your history on another device.</div>`+
+    `<div class="big" style="font-size:22px; letter-spacing:.1em; margin-top:12px">${key}</div>`+
+    `<div style="margin-top:8px"><span class="btn" data-sync="copy">⧉ COPY KEY</span>
+    <span class="btn" data-sync="refresh">⟳ REFRESH MY LOG</span></div>`+
+    (status?`<div style="margin-top:8px; font-size:11px">${status}</div>`:'')+
+    `<div style="margin-top:14px; max-width:56ch">`+
+    `<span class="dim" style="font-size:11px">USE A KEY FROM ANOTHER DEVICE</span><br>`+
+    `<input id="syncImport" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" spellcheck="false" `+
+    `style="font-family:var(--mono); font-size:12px; color:var(--phos); background:var(--screen); `+
+    `border:none; border-radius:4px; padding:8px 10px; margin-top:6px; width:220px; box-shadow:0 0 8px rgba(0,0,0,.7) inset">`+
+    ` <span class="btn" data-sync="import">USE THIS KEY</span></div>`+
+    `<div id="syncLog" style="margin-top:14px; font-size:12px; line-height:1.9"></div>`;
+}
+function showSync(){
+  showScreen(syncScreen());
+  ticker.textContent='SYNC · YOUR ANONYMOUS LOG KEY';
+  refreshSyncLog();
+}
+function refreshSyncLog(){
+  const box=document.getElementById('syncLog'); if(!box) return;
+  box.textContent='LOADING…';
+  fetch(API+'/api/log?key='+encodeURIComponent(getSyncKey()))
+    .then(r=>r.json())
+    .then(d=>{
+      const entries=(d&&d.entries)||[];
+      box.innerHTML = entries.length ? entries.map(e=>{
+        let s={}; try{ s=JSON.parse(e.summary); }catch(err){}
+        const bits = e.kind==='one' ? `${s.kw?glyph(s.kw)+' '+s.kw:''}${s.trans?' → '+s.trans:''}`
+          : e.kind==='kilo' ? `MODE ${s.top?s.top.map(glyph).join(''):''} COH ${s.coherence??''}`
+          : e.kind==='lab' ? `TARGET ${s.target?glyph(s.target):''} ${s.verdict||''}` : '';
+        return `<div><span class="dim">${(e.created_at||'').slice(0,16).replace('T',' ')}</span> · ${e.kind.toUpperCase()} · ${bits}${e.question?' · “'+esc(e.question)+'”':''}</div>`;
+      }).join('') : '<span class="dim">NO ENTRIES YET — CAST SOMETHING</span>';
+    })
+    .catch(()=>{ box.innerHTML='<span style="color:#ff6a3c">COULD NOT REACH THE LOG</span>'; });
+}
+summaryEl.addEventListener('click',e=>{
+  const s=e.target.closest('[data-sync]'); if(!s) return;
+  const action=s.dataset.sync;
+  if(action==='copy'){
+    navigator.clipboard?.writeText(getSyncKey())
+      .then(()=>{ summaryEl.innerHTML=syncScreen('COPIED'); })
+      .catch(()=>{ summaryEl.innerHTML=syncScreen('COPY FAILED — SELECT THE KEY MANUALLY'); });
+  } else if(action==='refresh'){ refreshSyncLog(); }
+  else if(action==='import'){
+    const v=document.getElementById('syncImport').value.trim().toUpperCase();
+    if(v.length<8){ summaryEl.innerHTML=syncScreen('KEY LOOKS TOO SHORT'); return; }
+    setSyncKey(v); showSync();
+  }
+});
+function poolScreen(d){
+  if(!d) return `<h2>⌘ THE POOL</h2><div class="dim">LOADING…</div>`;
+  const p=d.baseline, row=(name,c)=>`<tr><td>${name}</td><td>${c.hits}/${c.n}</td><td>${(c.rate*100).toFixed(2)}%</td><td>${c.z>=0?'+':''}${c.z.toFixed(2)}σ</td></tr>`;
+  return `<h2>⌘ THE POOL · ${d.sessions} PUBLIC LAB SESSIONS</h2>`+
+    `<div class="dim" style="max-width:56ch; line-height:1.9">Every LAB session anyone has submitted, pooled.
+    Baseline ${(p*100).toFixed(2)}% (1/64). This is the open-data ledger — see docs/RESEARCH.md.</div>`+
+    (d.sessions?
+      `<table style="margin-top:10px"><tr><th>CONDITION</th><th>HITS</th><th>RATE</th><th>Z</th></tr>`+
+      row('INTEND',d.INTEND)+row('SHAM (cued intend)',d.SHAM)+row('REST',d.REST)+`</table>`+
+      `<div class="dim" style="margin-top:10px; font-size:11px">RECENT SESSIONS</div>`+
+      `<div style="font-size:12px; line-height:1.9">${d.recent.map(r=>
+        `<span class="dim">${(r.submitted_at||'').slice(0,16).replace('T',' ')}</span> · TARGET ${glyph(r.target)} ${r.target} · `+
+        `I ${r.intend_hits}/${r.intend_n} · S ${r.sham_hits}/${r.sham_n} · R ${r.rest_hits}/${r.rest_n}`).join('<br>')}</div>`
+      : `<div class="dim" style="margin-top:10px">NO SUBMISSIONS YET — RUN A LAB SESSION AND BE THE FIRST</div>`);
+}
+function showPool(){
+  showScreen(poolScreen(null));
+  ticker.textContent='POOL · FETCHING PUBLIC LAB RESULTS';
+  fetch(API+'/api/lab/stats').then(r=>r.json()).then(d=>{
+    summaryEl.innerHTML=poolScreen(d);
+    ticker.textContent='POOL · '+d.sessions+' SESSIONS PUBLICLY SUBMITTED';
+  }).catch(()=>{
+    summaryEl.innerHTML=`<h2>⌘ THE POOL</h2><div style="color:#ff6a3c">COULD NOT REACH THE POOL — OFFLINE OR THE API ISN'T DEPLOYED YET</div>`;
+  });
+}
+$('btnSync').onclick=showSync;
+$('btnPool').onclick=showPool;
+
 // ---- LAB: preregistered blind-block intent protocol ----
 // Session: machine picks target hexagram + shuffled block plan BEFORE any
 // casting (preregistration). Blocks are cued INTEND or REST; a third of the
@@ -668,15 +835,17 @@ function labPlan(){
     let j=0; do{ j=(bit()<<4)|(bit()<<3)|(bit()<<2)|(bit()<<1)|bit(); }while(j>i);
     [labels[i],labels[j]]=[labels[j],labels[i]];
   }
-  let t=0; do{ t=(bit()<<5)|(bit()<<4)|(bit()<<3)|(bit()<<2)|(bit()<<1)|bit(); }while(t>=64);
-  return {target:t+1, labels};
+  const target = bit() ? 52 /* KEEPING STILL */ : 11 /* PEACE */;
+  return {target, labels};
 }
 function labStop(){ clearTimeout(labTimer); lab=null; labEl.classList.remove('on');
   $('btnLab').classList.remove('down'); ticker.textContent='LAB ABORTED · SESSION DISCARDED'; }
 function labStart(){
-  hold(); $('btnHold').classList.remove('down'); summaryEl.classList.remove('on');
+  setScreen('lab');
   const {target,labels}=labPlan();
-  lab={target, labels, block:0, castIdx:0, casts:[], t0:new Date().toISOString(), phase:'prereg'};
+  const t0=new Date().toISOString();
+  const idSuffix=[...crypto.getRandomValues(new Uint8Array(4))].map(b=>b.toString(16).padStart(2,'0')).join('');
+  lab={target, labels, block:0, castIdx:0, casts:[], t0, id:`${t0.replace(/[:.]/g,'-')}-${idSuffix}`, phase:'prereg'};
   $('btnLab').classList.add('down');
   labEl.innerHTML=
     `<div class="fine">PREREGISTERED · ${lab.t0}</div>`+
@@ -686,7 +855,6 @@ function labStart(){
     `SOME INTEND CUES ARE SHAM — YOU CANNOT TELL WHICH<br>`+
     `NO FEEDBACK UNTIL THE SESSION ENDS · NO EARLY STOPPING<br><br>`+
     `HOLD THE TARGET IN MIND ONLY DURING INTEND · PRESS ⚗ LAB TO BEGIN</div>`;
-  labEl.classList.add('on');
   ticker.textContent='LAB · PREREGISTRATION ON SCREEN · ⚗ TO BEGIN, ■ TO ABORT';
 }
 function labBlock(){
@@ -727,18 +895,44 @@ function labResults(){
   const verdict = I.z>=3 ? 'STRONG DEVIATION — REPLICATE BEFORE BELIEVING IT'
     : I.z>=2 ? 'SUGGESTIVE — WITHIN REACH OF CHANCE; RUN MORE SESSIONS'
     : 'WITHIN CHANCE — AN HONEST NULL IS A RESULT';
+  lab.submitPayload={id:lab.id, prereg_at:lab.t0, target:lab.target,
+    blocks_intend:LAB.BLOCKS_INTEND, blocks_sham:LAB.BLOCKS_SHAM, blocks_rest:LAB.BLOCKS_REST,
+    casts_per_block:LAB.CASTS, entropy_source:'crypto.getRandomValues',
+    results:{INTEND:I,SHAM:S,REST:R}, casts:lab.casts};
   labEl.innerHTML=
+    truncStrip([[lab.target,'TARGET']])+
     `<div class="fine">SESSION COMPLETE · TARGET ${glyph(lab.target)} ${lab.target} ${NAMES[lab.target]} · BASELINE ${(p*100).toFixed(2)}%</div>`+
     `<table><tr><th>CONDITION</th><th>HITS</th><th>RATE</th><th>Z</th></tr>`+
     row('INTEND',I)+row('SHAM (cued intend)',S)+row('REST',R)+`</table>`+
     `<div>${verdict}</div>`+
     `<div class="fine">SHAM ≈ INTEND WITH BOTH ELEVATED SUGGESTS EXPECTATION, NOT INFLUENCE<br>`+
     `ONE SESSION PROVES NOTHING IN EITHER DIRECTION — THE LOG IS THE PRODUCT</div>`+
-    `<a download="fo64-lab-${lab.t0.replace(/[:.]/g,'-')}.json" href="${href}">▼ DOWNLOAD RAW LOG (JSON)</a>`+
-    `<div class="fine">⚗ NEW SESSION · ■ CLOSE</div>`;
+    `<div style="margin-top:10px">`+
+    `<a download="fo64-lab-${lab.t0.replace(/[:.]/g,'-')}.json" href="${href}">▼ DOWNLOAD RAW LOG (JSON)</a></div>`+
+    `<div style="margin-top:10px"><span class="btn" data-submit="1">▲ SUBMIT TO THE POOL</span> `+
+    `<span class="btn" data-go-pool="1">⌘ VIEW THE POOL</span></div>`+
+    `<div id="labSubmitR" style="margin-top:8px; min-height:18px; font-size:11px; letter-spacing:.1em"></div>`+
+    `<div class="fine" style="margin-top:6px">⚗ NEW SESSION · ■ CLOSE</div>`;
   lab.phase='done';
   ticker.textContent='LAB · RESULTS ON SCREEN';
+  logEvent('lab', '', {target:lab.target, verdict});
 }
+labEl.addEventListener('click', e=>{
+  const s=e.target.closest('[data-submit]');
+  if(s){
+    const r=document.getElementById('labSubmitR');
+    r.textContent='SUBMITTING…';
+    fetch(API+'/api/lab',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(lab.submitPayload)})
+      .then(res=>res.json().then(d=>({ok:res.ok,d})))
+      .then(({ok,d})=>{ r.innerHTML=ok?'<span style="color:#ffe9b0">SUBMITTED · THANK YOU FOR CONTRIBUTING TO THE POOL</span>'
+        :`<span style="color:#ff6a3c">SUBMIT FAILED — ${(d&&d.error)||'TRY AGAIN'}. THE LOCAL DOWNLOAD ABOVE STILL HAS YOUR DATA.</span>`; })
+      .catch(()=>{ r.innerHTML='<span style="color:#ff6a3c">SUBMIT FAILED — OFFLINE OR UNREACHABLE. THE LOCAL DOWNLOAD ABOVE STILL HAS YOUR DATA.</span>'; });
+    return;
+  }
+  const gp=e.target.closest('[data-go-pool]');
+  if(gp){ showPool(); }
+});
 $('btnLab').onclick=()=>{
   if(!lab){ labStart(); return; }
   if(lab.phase==='prereg'){ lab.phase='run'; ticker.textContent='LAB · SESSION RUNNING'; labBlock(); return; }
@@ -909,23 +1103,93 @@ const HEXT={
 64:{j:"Before completion: the little fox, nearly across, gets its tail wet — nothing furthers yet.",l:["He gets his tail in the water — humiliating.","He brakes his wheels — perseverance brings good fortune.","Before completion, attack brings misfortune; it furthers to cross the great water.","Perseverance brings fortune, remorse vanishes; three years of shock, then great reward.","Perseverance brings fortune, no remorse — the light of the superior man is true.","Drinking wine in genuine confidence — no blame; but wet the head, and it is lost."]}
 };
 const learnEl=$('learn');
-let learnOpen=false;
 const go=(p,x)=>`data-go="${p}"${x!==undefined?` data-x="${x}"`:''}`;
+
+// ---- LEARN progress (localStorage, purely additive — never touches cascade state) ----
+const LEARN_STAGES=[
+  {id:'orient', title:'WHAT IS A HEXAGRAM'},
+  {id:'tritab', title:'THE EIGHT TRIGRAMS'},
+  {id:'lines',  title:'LINES & CHANGE'},
+  {id:'build',  title:'BUILD A HEXAGRAM'},
+  {id:'pat',    title:'PATTERNS — THE 64 AS AN 8×8 GRID'},
+  {id:'grid',   title:'THE SIXTY-FOUR'},
+  {id:'drill',  title:'DRILL'}];
+function loadProgress(){
+  try{ const p=JSON.parse(localStorage.getItem('fo64_learn_progress')); if(p) return p; }catch(e){}
+  return {stages:{}, drill:{}};
+}
+function saveProgress(){ try{ localStorage.setItem('fo64_learn_progress', JSON.stringify(progress)); }catch(e){} }
+let progress=loadProgress();
+function markVisited(id){ if(!progress.stages[id]){ progress.stages[id]=1; saveProgress(); } }
+function bestStreak(track){ return (progress.drill[track]&&progress.drill[track].best)||0; }
+function reportStreak(track,v){
+  progress.drill[track]=progress.drill[track]||{best:0};
+  if(v>progress.drill[track].best){ progress.drill[track].best=v; saveProgress(); }
+}
+function stageRail(activeId){
+  return `<div style="display:flex; gap:5px; margin-bottom:14px; flex-wrap:wrap">${LEARN_STAGES.map((s,i)=>{
+    const done=progress.stages[s.id], active=s.id===activeId;
+    return `<span ${go(s.id)} title="${s.title}" style="cursor:pointer; width:22px; height:22px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center; font-size:10px; letter-spacing:0;
+      border:1px solid var(--phos-faint);
+      ${active?'background:rgba(255,176,0,.28); box-shadow:0 0 8px rgba(255,176,0,.6); color:#fff':
+        done?'background:rgba(255,176,0,.14); color:var(--phos)':'color:var(--phos-dim)'}">${done&&!active?'✓':i+1}</span>`;
+  }).join('')}</div>`;
+}
+function nextStageBtn(curId,label){
+  const idx=LEARN_STAGES.findIndex(s=>s.id===curId);
+  if(idx<0||idx>=LEARN_STAGES.length-1) return `<span class="btn" ${go('home')}>◆ COURSE COMPLETE · MENU</span>`;
+  const nxt=LEARN_STAGES[idx+1];
+  return `<span class="btn" ${go(nxt.go||nxt.id)}>NEXT · ${label||nxt.title} ▶</span>`;
+}
 function learnHome(){
+  const done=LEARN_STAGES.filter(s=>progress.stages[s.id]).length;
   learnEl.innerHTML=`<h2>TEACHING MACHINE · FROM THE GROUND UP</h2>
+   <div class="dim" style="font-size:11px; letter-spacing:.12em; margin-bottom:12px">
+   ${done}/${LEARN_STAGES.length} STAGES COMPLETE${done===LEARN_STAGES.length?' · YOU HAVE THE WHOLE ALPHABET':''}</div>
    <div style="line-height:2.4">
-   <span class="btn" ${go('tritab')}>I · THE EIGHT TRIGRAMS</span><br>
-   <span class="btn" ${go('lines')}>II · LINES &amp; CHANGE</span><br>
-   <span class="btn" ${go('pat')}>III · PATTERNS — MEMORIZING THE 64 BY TRIGRAM</span><br>
-   <span class="btn" ${go('grid')}>IV · THE SIXTY-FOUR</span><br>
-   <span class="btn" ${go('drill')}>V · DRILL</span></div>
+   ${LEARN_STAGES.map((s,i)=>`<span class="btn" ${go(s.id)}>${progress.stages[s.id]?'✓':i} · ${s.title}</span><br>`).join('')}
+   </div>
    <div class="dim" style="margin-top:14px; font-size:11px; letter-spacing:.12em">
-   DEFINITIONS ARE COMPACT PARAPHRASES IN THE SPIRIT OF WILHELM ·
-   PRESS ✎ LEARN TO CLOSE</div>`;
+   WORK THROUGH IN ORDER FOR A BUILT-UP COURSE, OR JUMP AROUND FREELY ·
+   DEFINITIONS ARE COMPACT PARAPHRASES IN THE SPIRIT OF WILHELM · PRESS ✎ LEARN TO CLOSE</div>`;
+}
+function learnOrient(){
+  markVisited('orient');
+  const kw=11, b=BITS_OF[kw], u=TRIG_BY_B[b>>3], l=TRIG_BY_B[b&7]; // PEACE — earth above heaven
+  const kw2=12; // STANDSTILL — the swapped pair, for contrast
+  learnEl.innerHTML=stageRail('orient')+`<h2>0 · WHAT IS A HEXAGRAM</h2>
+   <div style="max-width:56ch; line-height:1.9">The I Ching is an ancient <b>state engine</b>. It uses
+   figures called <b>hexagrams</b> to describe types of time, and a reading casts one to help answer a
+   question. Here's one:</div>
+   <div style="display:flex; gap:22px; align-items:center; flex-wrap:wrap; margin:14px 0">
+   <div class="big" style="font-size:64px">${glyph(kw)}</div>
+   <div><div>${kw} · ${NAMES[kw]}</div><div class="dim">${u.en} ABOVE ${l.en} BELOW</div></div></div>
+   <div style="max-width:56ch; line-height:1.9">In Western thinking, time is mostly <b>measured</b> — a
+   clock, a calendar, a duration in seconds. The I Ching doesn't measure time. It <b>observes the quality</b>
+   of a moment — is this a time of growth, of blockage, of waiting, of return? Each of the 64 hexagrams
+   names one such quality.</div>
+   <div style="max-width:56ch; line-height:1.9; margin-top:10px">Every hexagram is built the same simple
+   way: stack <b>two trigrams</b>, one on top of the other. The one above is EARTH (☷) sitting over HEAVEN
+   (☰) — heaven's energy naturally rises, earth's naturally sinks, so stacked this way their motions run
+   toward each other. That meeting is why it's called <b>PEACE</b>. Swap the two — heaven on top, earth
+   below, each moving further from the other — and you get a very different quality of time: hexagram
+   ${kw2}, ${NAMES[kw2]}.</div>
+   <div style="max-width:56ch; line-height:1.9; margin-top:10px">So really there are only two things to
+   learn from here: what the eight trigrams mean, and how a line gets built in the first place — one coin
+   toss at a time. That second part is next, built up slowly with worked examples.</div>
+   <div style="margin-top:16px">${nextStageBtn('orient','THE EIGHT TRIGRAMS')} <span class="btn" ${go('home')}>MENU</span></div>`;
 }
 function learnTriTable(){
-  learnEl.innerHTML=`<h2>I · THE EIGHT TRIGRAMS</h2>
-   <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; max-width:520px">
+  markVisited('tritab');
+  const ex=TRI[0], exDbl=KING_WEN[(ex.b<<3)|ex.b];
+  learnEl.innerHTML=stageRail('tritab')+`<h2>I · THE EIGHT TRIGRAMS</h2>
+   <div style="max-width:56ch; line-height:1.9">A trigram is three stacked lines — 2³ = 8 possible
+   combinations, each a small image of a force in nature. For example, ${ex.g} <b>${ex.en}</b> (${ex.n}) is
+   three unbroken lines — pure, ceaseless strength. Doubled (stacked on itself) it makes
+   <span class="btn" ${go('hex',exDbl)}>${glyph(exDbl)} ${exDbl} ${NAMES[exDbl]}</span> — see PATTERNS,
+   coming up, for how any two trigrams combine.</div>
+   <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; max-width:520px; margin-top:10px">
    ${TRI.map((t,i)=>`<div ${go('tri',i)} style="cursor:pointer; text-align:center; padding:12px 4px 10px;
      border:1px solid var(--phos-faint); border-radius:4px">
      <div style="font-size:56px; line-height:1.1; text-shadow:0 0 10px rgba(255,176,0,.6)">${t.g}</div>
@@ -934,7 +1198,7 @@ function learnTriTable(){
    </div>
    <div class="dim" style="margin-top:12px; font-size:11px">SELECT A TRIGRAM FOR ITS FULL PROFILE ·
    READ EACH GLYPH BOTTOM-UP</div>
-   <div style="margin-top:10px"><span class="btn" ${go('home')}>MENU</span></div>`;
+   <div style="margin-top:14px">${nextStageBtn('tritab','LINES & CHANGE')} <span class="btn" ${go('home')}>MENU</span></div>`;
 }
 function learnTri(i){
   const t=TRI[i];
@@ -953,20 +1217,92 @@ function learnTri(i){
    ${i<7?`<span class="btn" ${go('tri',i+1)}>NEXT ▶</span>`:''}
    <span class="btn" ${go('tritab')}>TABLE</span> <span class="btn" ${go('home')}>MENU</span></div>`;
 }
+const LINE_CASES=[
+  {sum:6, bar:'━━&nbsp;&nbsp;&nbsp;━━', mark:'✕', name:'OLD YIN', coins:'ALL TAILS · 2+2+2',
+    note:'a broken line so spent it flips to unbroken next time'},
+  {sum:7, bar:'━━━━━━━', mark:'', name:'YOUNG YANG', coins:'ONE HEADS, TWO TAILS · any order, 3+2+2',
+    note:'a fresh unbroken line — stable, stays put'},
+  {sum:8, bar:'━━&nbsp;&nbsp;&nbsp;━━', mark:'', name:'YOUNG YIN', coins:'ONE TAILS, TWO HEADS · any order, 2+3+3',
+    note:'a fresh broken line — stable, stays put'},
+  {sum:9, bar:'━━━━━━━', mark:'○', name:'OLD YANG', coins:'ALL HEADS · 3+3+3',
+    note:'an unbroken line so spent it flips to broken next time'}];
+function learnLines(){
+  markVisited('lines');
+  const lineCase=v=>LINE_CASES.find(c=>c.sum===v);
+  const lines=toss(); const kw=kwOf(lines);
+  const trans=kwOf(lines.map(v=>v===6?7:v===9?8:v));
+  const moving=lines.some(v=>v===6||v===9);
+  learnEl.innerHTML=stageRail('lines')+`<h2>II · LINES &amp; CHANGE</h2>
+   <div style="max-width:56ch; line-height:1.9">A line is either <b>unbroken</b> (yang) or <b>broken</b>
+   (yin). The traditional way to make one: toss three coins together, heads counts 3, tails counts 2, and
+   add up what you got. There are only four possible totals:</div>
+   <div style="margin-top:10px; font-size:12px; line-height:2.3">
+   ${LINE_CASES.map(c=>`<div>${c.bar}&nbsp; <b>${c.sum} · ${c.name}</b>
+     ${c.mark?`<span style="color:#ff6a3c">${c.mark}</span>`:''}
+     <span class="dim">— ${c.coins} — ${c.note}</span></div>`).join('')}
+   </div>
+   <div style="max-width:56ch; line-height:1.9; margin-top:12px">6 and 9 are the <b>old</b> lines — so fully
+   yin or yang that they're already tipping into their opposite. Do this six times, bottom line first, and
+   you've built a whole hexagram. If any line came up old, flip just those (6→unbroken, 9→broken) and
+   you get a <i>second</i> hexagram — not a different reading, but where the first one is headed.</div>
+   <div style="max-width:56ch; line-height:1.9; margin-top:10px">Here's a live worked example — six fresh
+   coin-triples, right now:</div>
+   <div style="margin-top:12px; display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start">
+   <div style="font-size:12px; line-height:2.3">${lines.map((v,i)=>{
+     const c=lineCase(v);
+     return `LINE ${i+1} — ${c.coins} = <b>${v} · ${c.name}</b>${c.mark?` <span style="color:#ff6a3c">${c.mark}</span>`:''}`;
+   }).join('<br>')}</div>
+   <div><div class="big" style="font-size:44px">${glyph(kw)}</div>
+   <div class="dim" style="font-size:11px; max-width:22ch">${kw} · ${NAMES[kw]}${moving?
+     `<br>→ ${glyph(trans)} ${trans} · ${NAMES[trans]} (WHERE IT'S HEADING)`:
+     '<br>NO OLD LINES THIS TIME — NOTHING IS CHANGING'}</div></div>
+   </div>
+   <div style="margin-top:14px"><span class="btn" ${go('lines')}>⟳ THROW AGAIN</span>
+   ${nextStageBtn('lines','BUILD A HEXAGRAM')} <span class="btn" ${go('home')}>MENU</span></div>`;
+}
+let buildPick={u:null,l:null};
+function learnBuild(){
+  markVisited('build');
+  const row=which=>TRI.map((t,i)=>{
+    const sel=buildPick[which]===t.b;
+    return `<span data-build="${which}" data-bx="${i}" style="cursor:pointer; display:inline-block;
+      width:42px; text-align:center; font-size:28px; padding:4px 0; border-radius:4px;
+      ${sel?'background:rgba(255,176,0,.22); text-shadow:0 0 10px rgba(255,176,0,.7)':''}">${t.g}</span>`;
+  }).join('');
+  const ready=buildPick.u!==null&&buildPick.l!==null;
+  const kw=ready?KING_WEN[(buildPick.u<<3)|buildPick.l]:null;
+  learnEl.innerHTML=stageRail('build')+`<h2>III · BUILD A HEXAGRAM</h2>
+   <div style="max-width:56ch; line-height:1.9">Pick an <b>upper</b> trigram, then a <b>lower</b> one — upper
+   sits on top, lower underneath. Together they form one of the 64 hexagrams.</div>
+   <div class="dim" style="margin-top:12px; font-size:11px">UPPER (OUTER)</div>
+   <div>${row('u')}</div>
+   <div class="dim" style="margin-top:8px; font-size:11px">LOWER (INNER)</div>
+   <div>${row('l')}</div>
+   ${ready?
+    `<div style="margin-top:18px; display:flex; gap:22px; align-items:center; flex-wrap:wrap">
+     <div class="big" style="font-size:54px">${glyph(kw)}</div>
+     <div><div>${kw} · ${NAMES[kw]}</div><div class="dim">${TRIG_BY_B[buildPick.u].en} OVER ${TRIG_BY_B[buildPick.l].en}</div></div></div>
+     <div style="margin-top:10px"><span class="btn" data-build="reset">⟳ TRY ANOTHER PAIR</span>
+     <span class="btn" ${go('hex',kw)}>FULL ENTRY →</span></div>`
+    : `<div class="dim" style="margin-top:16px">SELECT BOTH TO ASSEMBLE THE HEXAGRAM</div>`}
+   <div style="margin-top:16px">${nextStageBtn('build','PATTERNS')} <span class="btn" ${go('home')}>MENU</span></div>`;
+}
 function learnPatterns(){
+  markVisited('pat');
   const doubles=TRI.map(t=>KING_WEN[(t.b<<3)|t.b]);
-  learnEl.innerHTML=`<h2>III · PATTERNS · THE 64 AS AN 8×8 GRID</h2>
-   <div style="max-width:56ch; line-height:1.9">Memorize by structure, not by list. Start with the
+  learnEl.innerHTML=stageRail('pat')+`<h2>IV · PATTERNS · THE 64 AS AN 8×8 GRID</h2>
+   <div style="max-width:56ch; line-height:1.9">You already know the mechanic from BUILD: every hexagram is
+   an upper trigram over a lower one. Memorize the whole set by structure, not by list. Start with the
    <b>eight doubles</b> — each trigram over itself, the pure states on the grid's diagonal:</div>
    <div style="margin:8px 0; line-height:2.2">${doubles.map((kw,i)=>
      `<span class="btn" ${go('hex',kw)}>${TRI[i].g}${TRI[i].g} ${glyph(kw)} ${kw} ${NAMES[kw]}</span>`).join(' ')}</div>
    <div style="max-width:56ch; line-height:1.9">Then everything else is one question: <b>which trigram
    over which?</b> Rows are the upper (outer) trigram, columns the lower (inner). Doubles are lit.</div>
-   <div style="overflow-x:auto; margin-top:8px"><table style="font-size:12px">
+   <div style="overflow-x:auto; margin-top:8px; text-align:left"><table style="font-size:16px">
    <tr><th></th>${TRI.map(t=>`<th>${t.g}</th>`).join('')}</tr>
    ${TRI.map(u=>`<tr><th>${u.g}</th>${TRI.map(l=>{
      const kw=KING_WEN[(u.b<<3)|l.b], d=u.b===l.b;
-     return `<td style="cursor:pointer; text-align:center; font-size:20px; padding:1px 6px${d?'; color:#ffe9b0; text-shadow:0 0 10px rgba(255,208,112,.8)':''}" ${go('hex',kw)} title="${kw} ${NAMES[kw]}">${glyph(kw)}<div style="font-size:9px" class="dim">${kw}</div></td>`;
+     return `<td style="cursor:pointer; text-align:left; font-size:26px; padding:4px 10px${d?'; color:#ffe9b0; text-shadow:0 0 10px rgba(255,208,112,.8)':''}" ${go('hex',kw)} title="${kw} ${NAMES[kw]}">${glyph(kw)}<div style="font-size:11px" class="dim">${kw}</div></td>`;
    }).join('')}</tr>`).join('')}
    </table></div>
    <div class="dim" style="font-size:11px; margin-top:8px; line-height:1.9">
@@ -974,27 +1310,14 @@ function learnPatterns(){
    THE FOUR CARDINAL PAIRS 11/12 (PEACE/STANDSTILL), 63/64 (AFTER/BEFORE COMPLETION),
    41/42 (DECREASE/INCREASE), 31/32 (INFLUENCE/DURATION) ·
    EVERY HEXAGRAM'S INVERSE (FLIPPED UPSIDE-DOWN) SITS BESIDE IT IN THE KING WEN SEQUENCE</div>
-   <div style="margin-top:10px"><span class="btn" ${go('grid')}>ON TO THE 64 ▶</span> <span class="btn" ${go('home')}>MENU</span></div>`;
-}
-function learnLines(){
-  const lines=toss(); const kw=kwOf(lines);
-  const trans=kwOf(lines.map(v=>v===6?7:v===9?8:v));
-  const moving=lines.some(v=>v===6||v===9);
-  const lab=v=>v===6?'6 · OLD YIN ✕ → BECOMES YANG':v===7?'7 · YOUNG YANG (STABLE)':v===8?'8 · YOUNG YIN (STABLE)':'9 · OLD YANG ○ → BECOMES YIN';
-  learnEl.innerHTML=`<h2>II · LINES &amp; CHANGE</h2>
-   <div class="dim">THREE COINS: HEADS 3, TAILS 2. SUM 6/7/8/9 PER LINE, SIX LINES, BOTTOM FIRST.<br>
-   6 AND 9 ARE OLD LINES — FULLY RIPE, SO THEY FLIP. P(OLD)=25% PER LINE.<br>
-   OLD YIN ✕ (6) TURNS YANG; OLD YANG ○ (9) TURNS YIN. THE FLIPPED FIGURE IS WHERE THE STATE IS HEADING.</div>
-   <div style="margin-top:12px">LIVE THROW · ${glyph(kw)} ${kw}${moving?` → ${glyph(trans)} ${trans}`:''}</div>
-   <div style="font-size:12px; line-height:1.9">${lines.map((v,i)=>`LINE ${i+1} — ${lab(v)}`).join('<br>')}</div>
-   <div style="margin-top:12px"><span class="btn" ${go('lines')}>⟳ THROW AGAIN</span>
-   <span class="btn" ${go('grid')}>ON TO THE 64 ▶</span> <span class="btn" ${go('home')}>MENU</span></div>`;
+   <div style="margin-top:12px">${nextStageBtn('pat','THE SIXTY-FOUR')} <span class="btn" ${go('home')}>MENU</span></div>`;
 }
 function learnGrid(){
-  learnEl.innerHTML=`<h2>III · THE SIXTY-FOUR · KING WEN ORDER</h2>
+  markVisited('grid');
+  learnEl.innerHTML=stageRail('grid')+`<h2>V · THE SIXTY-FOUR · KING WEN ORDER</h2>
    <div class="hexgrid">${Array.from({length:64},(_,i)=>`<span ${go('hex',i+1)} title="${i+1}">${glyph(i+1)}</span>`).join('')}</div>
-   <div class="dim" style="margin-top:10px; font-size:11px">SELECT A HEXAGRAM</div>
-   <div style="margin-top:8px"><span class="btn" ${go('home')}>MENU</span></div>`;
+   <div class="dim" style="margin-top:10px; font-size:11px">SELECT A HEXAGRAM FOR ITS FULL ENTRY — JUDGMENT AND EVERY LINE</div>
+   <div style="margin-top:14px">${nextStageBtn('grid','DRILL')} <span class="btn" ${go('home')}>MENU</span></div>`;
 }
 function learnHex(kw){
   const b=BITS_OF[kw], u=TRIG_BY_B[b>>3], l=TRIG_BY_B[b&7], t=HEXT[kw];
@@ -1013,13 +1336,36 @@ function learnHex(kw){
    ${kw<64?`<span class="btn" ${go('hex',kw+1)}>${kw+1} ▶</span>`:''}
    <span class="btn" ${go('grid')}>GRID</span> <span class="btn" ${go('pat')}>PATTERNS</span> <span class="btn" ${go('home')}>MENU</span></div>`;
 }
-function learnDrill(){
-  const kind=bit();  // 0: trigram, 1: hexagram
+
+// ---- Drill: three tracks, each with a live streak + a persisted best ----
+const DRILL_TRACKS={
+  trigram:{label:'TRIGRAM ID', desc:'NAME THE TRIGRAM FROM ITS GLYPH'},
+  pair:{label:'BUILD-A-HEXAGRAM', desc:'GIVEN TWO TRIGRAMS, NAME THE HEXAGRAM THEY FORM'},
+  hex:{label:'HEXAGRAM NAMING', desc:'NAME THE HEXAGRAM FROM ITS GLYPH'}};
+let drillTrack=null, drillStreak=0;
+function learnDrillHome(){
+  markVisited('drill');
+  learnEl.innerHTML=stageRail('drill')+`<h2>VI · DRILL</h2>
+   <div class="dim" style="max-width:56ch; line-height:1.9; margin-bottom:6px">PICK A TRACK. EACH CORRECT
+   ANSWER IN A ROW BUILDS YOUR STREAK; A MISS RESETS IT. YOUR BEST STREAK PER TRACK IS SAVED.</div>
+   <div style="line-height:2.6">${Object.entries(DRILL_TRACKS).map(([k,v])=>
+     `<span class="btn" data-drill="${k}">${v.label} <span class="dim">· BEST ${bestStreak(k)}</span></span><br>`).join('')}</div>
+   <div style="margin-top:12px"><span class="btn" ${go('home')}>MENU</span></div>`;
+}
+function drillQuestion(){
   let answer, promptHtml, pool;
-  if(kind===0){ const t=TRI[(bit()<<2|bit()<<1|bit())&7]; answer=t.en;
+  if(drillTrack==='trigram'){
+    const t=TRI[(bit()<<2|bit()<<1|bit())&7]; answer=t.en;
     promptHtml=`<div class="big" style="font-size:54px">${t.g}</div><div class="dim">NAME THIS TRIGRAM</div>`;
     pool=TRI.map(x=>x.en);
-  } else { let k=0; do{k=(bit()<<5)|(bit()<<4)|(bit()<<3)|(bit()<<2)|(bit()<<1)|bit();}while(k>=64); k++;
+  } else if(drillTrack==='pair'){
+    const u=TRI[(bit()<<2|bit()<<1|bit())&7], l=TRI[(bit()<<2|bit()<<1|bit())&7];
+    const kw=KING_WEN[(u.b<<3)|l.b]; answer=`${kw} ${NAMES[kw]}`;
+    promptHtml=`<div style="font-size:15px; margin-bottom:8px">UPPER ${u.g} ${u.en} &nbsp;·&nbsp; LOWER ${l.g} ${l.en}</div>
+      <div class="dim">WHICH HEXAGRAM DOES THIS MAKE?</div>`;
+    pool=Array.from({length:64},(_,i)=>`${i+1} ${NAMES[i+1]}`);
+  } else {
+    let k=0; do{k=(bit()<<5)|(bit()<<4)|(bit()<<3)|(bit()<<2)|(bit()<<1)|bit();}while(k>=64); k++;
     answer=NAMES[k];
     promptHtml=`<div class="big" style="font-size:54px">${glyph(k)}</div><div class="dim">NAME THIS HEXAGRAM (${k})</div>`;
     pool=NAMES.slice(1);
@@ -1027,32 +1373,49 @@ function learnDrill(){
   const opts=new Set([answer]);
   while(opts.size<4) opts.add(pool[(Math.random()*pool.length)|0]);
   const shuffled=[...opts].sort(()=>Math.random()-.5);
-  learnEl.innerHTML=`<h2>IV · DRILL</h2>${promptHtml}
+  learnEl.innerHTML=stageRail('drill')+`<h2>VI · DRILL · ${DRILL_TRACKS[drillTrack].label}</h2>
+   <div style="display:flex; gap:18px; align-items:baseline; margin-bottom:10px">
+   <div class="odometer" style="font-size:14px; padding:4px 10px">STREAK ${String(drillStreak).padStart(2,'0')}</div>
+   <span class="dim" style="font-size:11px">BEST ${bestStreak(drillTrack)}</span></div>
+   ${promptHtml}
    <div style="margin-top:12px; line-height:2.6">${shuffled.map(o=>
      `<span class="btn" data-ans="${o===answer?1:0}">${o}</span>`).join('<br>')}</div>
    <div id="drillR" style="margin-top:10px; min-height:24px"></div>
-   <div style="margin-top:6px"><span class="btn" ${go('drill')}>NEXT ▶</span> <span class="btn" ${go('home')}>MENU</span></div>`;
+   <div style="margin-top:6px" id="drillNav"><span class="btn" data-drill="tracks">← TRACKS</span> <span class="btn" ${go('home')}>MENU</span></div>`;
 }
 learnEl.addEventListener('click',e=>{
+  const bd=e.target.closest('[data-build]');
+  if(bd){
+    if(bd.dataset.build==='reset'){ buildPick={u:null,l:null}; } else { buildPick[bd.dataset.build]=TRI[+bd.dataset.bx].b; }
+    learnBuild(); return;
+  }
+  const dt=e.target.closest('[data-drill]');
+  if(dt){
+    if(dt.dataset.drill==='tracks'){ learnDrillHome(); return; }
+    if(dt.dataset.drill==='next'){ drillQuestion(); return; }
+    drillTrack=dt.dataset.drill; drillStreak=0; drillQuestion(); return;
+  }
   const a=e.target.closest('[data-ans]');
   if(a){ const ok=a.dataset.ans==='1';
+    if(drillTrack){
+      if(ok){ drillStreak++; reportStreak(drillTrack,drillStreak); }
+      else { drillStreak=0; }
+    }
     document.getElementById('drillR').innerHTML=ok?'<span style="color:#ffe9b0">CORRECT</span>':
       `<span style="color:#ff6a3c">NO — MARKED IN CREAM</span>`;
     if(!ok) learnEl.querySelectorAll('[data-ans="1"]').forEach(el=>el.style.color='#ffe9b0');
+    const nav=document.getElementById('drillNav');
+    if(nav) nav.insertAdjacentHTML('afterbegin','<span class="btn" data-drill="next">NEXT ▶</span> ');
     return; }
   const g=e.target.closest('[data-go]'); if(!g) return;
   const x=+g.dataset.x;
-  ({home:learnHome, lines:learnLines, grid:learnGrid, drill:learnDrill,
+  ({home:learnHome, orient:learnOrient, lines:learnLines, grid:learnGrid,
+    build:learnBuild, drill:learnDrillHome,
     tritab:learnTriTable, pat:learnPatterns,
     tri:()=>learnTri(x), hex:()=>learnHex(x)})[g.dataset.go]();
 });
 $('btnLearn').onclick=()=>{
-  learnOpen=!learnOpen;
-  if(learnOpen){ if(lab) labStop(); hold(); $('btnHold').classList.remove('down');
-    summaryEl.classList.remove('on'); learnHome(); learnEl.classList.add('on');
-    $('btnLearn').classList.add('down'); ticker.textContent='LEARN · TEACHING MACHINE';
-  } else { learnEl.classList.remove('on'); $('btnLearn').classList.remove('down');
-    ticker.textContent='STANDBY · PRESS CAST TO OPEN THE FIELD'; }
+  setScreen('learn'); learnHome(); ticker.textContent='LEARN · TEACHING MACHINE';
 };
 
 addEventListener('keydown',e=>{
