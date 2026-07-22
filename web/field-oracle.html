@@ -172,20 +172,19 @@
   .meter-cap .val{font-size:11px; color:var(--ink); font-variant-numeric:tabular-nums}
   /* now playing — the primary readout, promoted above the CRT */
   .now{
-    background:var(--screen); border-radius:8px; padding:14px 18px 12px; margin-bottom:14px;
+    background:var(--screen); border-radius:8px; padding:16px 18px 14px; margin-bottom:14px;
     box-shadow:0 0 14px rgba(0,0,0,.8) inset; color:var(--phos);
     text-shadow:0 0 8px rgba(255,176,0,.6);
+    text-align:center;
   }
-  .now-row{display:flex; align-items:center; gap:16px; flex-wrap:wrap}
-  .now-glyph{font-size:56px; line-height:1}
-  .now-glyph:empty{display:none}
-  .now-pic{font-size:15px; line-height:1.5; letter-spacing:.05em}
-  .now-pic:empty{display:none}
+  .now-decimal{font-size:28px; font-weight:800; letter-spacing:.04em; margin-bottom:12px}
+  .now-decimal:empty{display:none; margin-bottom:0}
+  .now-row{display:flex; align-items:center; justify-content:center; gap:22px; flex-wrap:wrap}
+  .now-hex{display:flex; flex-direction:column; align-items:center; gap:4px}
+  .now-glyph{font-size:68px; line-height:1}
+  .now-num{font-size:15px; letter-spacing:.1em; color:var(--phos-dim)}
   .now-arrow{font-size:24px; color:var(--phos-dim)}
-  .now-arrow:empty{display:none}
-  .now-text{width:100%; margin-top:10px}
-  .now-name{font-size:15px; letter-spacing:.05em}
-  .now-decimal{font-size:19px; letter-spacing:.04em; color:var(--phos-dim); margin-top:3px}
+  .now-name{font-size:14px; letter-spacing:.06em; color:var(--phos-dim); margin-top:12px}
   /* LEDs */
   .leds{display:grid; grid-template-columns:1fr 1fr; gap:8px 10px}
   .led{display:flex; align-items:center; gap:7px}
@@ -275,12 +274,11 @@
     .lab .target-g{font-size:40px}
     .lab .cue{font-size:22px; letter-spacing:.2em}
     .now{margin-bottom:8px; padding:10px 12px 8px}
-    .now-row{gap:10px}
-    .now-glyph{font-size:38px}
-    .now-pic{font-size:10px; line-height:1.4}
-    .now-text{margin-top:6px}
-    .now-name{font-size:11px}
-    .now-decimal{font-size:15px}
+    .now-decimal{font-size:20px; margin-bottom:8px}
+    .now-row{gap:12px}
+    .now-glyph{font-size:44px}
+    .now-num{font-size:12px}
+    .now-name{font-size:11px; margin-top:8px}
     .hexgrid{max-width:100%}
     .hexgrid span{font-size:19px}
     .summary [style*="grid-template-columns:repeat(4,1fr)"]{grid-template-columns:repeat(2,1fr) !important}
@@ -305,16 +303,19 @@
   </div>
 
   <div class="now" id="now">
+    <div class="now-decimal" id="nowDecimal"></div>
     <div class="now-row">
-      <span class="now-glyph" id="nowGlyph1">䷀</span>
-      <div class="now-pic" id="nowPic"></div>
-      <span class="now-arrow" id="nowArrow"></span>
-      <span class="now-glyph" id="nowGlyph2"></span>
+      <div class="now-hex">
+        <span class="now-glyph" id="nowGlyph1">䷀</span>
+        <div class="now-num" id="nowNum1"></div>
+      </div>
+      <span class="now-arrow" id="nowArrow" style="display:none">→</span>
+      <div class="now-hex" id="nowHex2" style="display:none">
+        <span class="now-glyph" id="nowGlyph2"></span>
+        <div class="now-num" id="nowNum2"></div>
+      </div>
     </div>
-    <div class="now-text">
-      <div class="now-name" id="nowName">PRESS CAST TO OPEN THE FIELD</div>
-      <div class="now-decimal" id="nowDecimal"></div>
-    </div>
+    <div class="now-name" id="nowName">PRESS CAST TO OPEN THE FIELD</div>
   </div>
 
   <div class="crt-bezel">
@@ -489,7 +490,9 @@ function cast(){
   }
   while(feed.children.length>MAXROWS) feed.removeChild(feed.firstChild);
 
-  updateNow(kw, moving.length?trans:null, moving.map(m=>m+1), picHtml(lines));
+  // NOW panel intentionally not updated here — the cascade ticks fast enough
+  // (down to 50ms) that live-updating it just reads as jitter. It only
+  // reflects deliberate actions: single cast, CAST x1000, LAB.
   $('counter').textContent=String(n).padStart(6,'0');
   $('tiltVal').textContent=Math.round(emaYang*100)+'%';
   $('churnVal').textContent=Math.round(emaMove*100)+'%';
@@ -605,7 +608,12 @@ function setRainView(on){
   $('btnMatrix').classList.toggle('down',on);
   if(on) drawGrid();
 }
-$('btnMatrix').onclick=()=>setRainView(!rainView);
+$('btnMatrix').onclick=()=>{
+  const turningOn=!rainView;
+  if(turningOn) setScreen('feed'); // make sure no overlay (LEARN/LAB/summary) is covering the rain view
+  setRainView(turningOn);
+  if(turningOn && !running) start(); // MATRIX fires the field itself — no need to separately press STOP first
+};
 addEventListener('resize',()=>{ if(rainView) drawGrid(); });
 
 // ---- screen exclusivity: exactly one of feed/summary/lab/learn is ever visible ----
@@ -662,25 +670,19 @@ $('btnRead').onclick=()=>{
 const TRIGRAM_ORDER=[7,3,5,1,6,2,4,0];
 const esc=s=>s.replace(/</g,'&lt;');
 function showScreen(html){ setScreen('summary'); summaryEl.innerHTML=html; }
-// traditional marks: 6 = old yin ✕ (→ yang), 9 = old yang ○ (→ yin)
-function picHtml(lines){
-  return lines.map(v=>{
-    const yang=v%2;
-    const mark=v===6?' <span style="color:#ff6a3c">✕</span>':v===9?' <span style="color:#ff6a3c">○</span>':'';
-    return `<div>${yang?'━━━━━━━':'━━━&nbsp;━━━'}${mark}</div>`;
-  }).reverse().join('');
-}
-function updateNow(kw,trans,moving,pic){
+function updateNow(kw,trans,moving){
   $('nowGlyph1').textContent=glyph(kw);
-  $('nowPic').innerHTML=pic||'';
+  $('nowNum1').textContent=kw;
   const hasTrans=trans!=null;
-  $('nowArrow').textContent=hasTrans?'→':'';
-  $('nowGlyph2').textContent=hasTrans?glyph(trans):'';
-  $('nowName').textContent=hasTrans?`${kw} ${NAMES[kw]} → ${trans} ${NAMES[trans]}`:`${kw} · ${NAMES[kw]}`;
+  $('nowArrow').style.display=hasTrans?'':'none';
+  $('nowHex2').style.display=hasTrans?'flex':'none';
+  if(hasTrans){ $('nowGlyph2').textContent=glyph(trans); $('nowNum2').textContent=trans; }
+  $('nowName').textContent=hasTrans?`${NAMES[kw]} → ${NAMES[trans]}`:NAMES[kw];
   $('nowDecimal').textContent=(moving&&moving.length)?`${kw}.${moving.join('.')} > ${trans}`:'';
 }
 function resetNow(){
-  $('nowGlyph1').textContent='䷀'; $('nowPic').innerHTML=''; $('nowArrow').textContent=''; $('nowGlyph2').textContent='';
+  $('nowGlyph1').textContent='䷀'; $('nowNum1').textContent='';
+  $('nowArrow').style.display='none'; $('nowHex2').style.display='none';
   $('nowName').textContent='PRESS CAST TO OPEN THE FIELD'; $('nowDecimal').textContent='';
 }
 $('btnCast').onclick=()=>{
@@ -703,7 +705,7 @@ $('btnCast').onclick=()=>{
       `<div style="max-width:56ch; line-height:1.9; font-size:12px" class="dim">${MEAN[trans]}</div>`:
       `<div style="margin-top:14px" class="dim">NO MOVING LINES · THE STATE IS AT REST</div>`)+
     `<div class="dim" style="margin-top:16px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN TO THE STREAM</div>`);
-  updateNow(kw, moving.length?trans:null, moving, picHtml(lines));
+  updateNow(kw, moving.length?trans:null, moving);
   ticker.textContent='SINGLE CAST · RESULT ABOVE · PRESS CAST TO CAST AGAIN';
   logEvent('one', q, {kw, trans: moving.length?trans:null, moving});
 };
@@ -750,7 +752,7 @@ $('btnKilo').onclick=()=>{
     `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${triRow(lo)}</div>`+
     `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')} · PRESS CAST TO RETURN</div>`;
   showScreen(kilo.readingHtml);
-  updateNow(+topP[0][0], null, null, null);
+  updateNow(+topP[0][0], null, null);
   ticker.innerHTML=`FIELD · 1000 CASTS · MODE <b>${glyph(+topP[0][0])} ${topP[0][0]}</b> ×${topP[0][1]} · COHERENCE ${coh.toFixed(3)}`;
   logEvent('kilo', q, {top:kilo.top, coherence:+coh.toFixed(4)});
 };
@@ -954,7 +956,7 @@ function labResults(){
     `<div id="labSubmitR" style="margin-top:8px; min-height:18px; font-size:11px; letter-spacing:.1em"></div>`+
     `<div class="fine" style="margin-top:6px">⚗ NEW SESSION · ■ CLOSE</div>`;
   lab.phase='done';
-  updateNow(lab.target, null, null, null);
+  updateNow(lab.target, null, null);
   ticker.textContent='LAB · RESULTS ON SCREEN';
   logEvent('lab', '', {target:lab.target, verdict});
 }
