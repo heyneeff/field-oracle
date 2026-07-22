@@ -172,18 +172,20 @@
   .meter-cap .val{font-size:11px; color:var(--ink); font-variant-numeric:tabular-nums}
   /* now playing — the primary readout, promoted above the CRT */
   .now{
-    background:var(--screen); border-radius:8px; padding:8px 16px 10px; margin-bottom:14px;
+    background:var(--screen); border-radius:8px; padding:14px 18px 12px; margin-bottom:14px;
     box-shadow:0 0 14px rgba(0,0,0,.8) inset; color:var(--phos);
     text-shadow:0 0 8px rgba(255,176,0,.6);
   }
-  .now-label{font-size:10px; letter-spacing:.2em; color:var(--phos-dim); text-shadow:none; margin-bottom:2px}
-  .now-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
-  .now-glyph{font-size:38px; line-height:1}
+  .now-row{display:flex; align-items:center; gap:16px; flex-wrap:wrap}
+  .now-glyph{font-size:56px; line-height:1}
   .now-glyph:empty{display:none}
-  .now-arrow{font-size:18px; color:var(--phos-dim)}
+  .now-pic{font-size:15px; line-height:1.5; letter-spacing:.05em}
+  .now-pic:empty{display:none}
+  .now-arrow{font-size:24px; color:var(--phos-dim)}
   .now-arrow:empty{display:none}
-  .now-name{font-size:14px; letter-spacing:.06em; flex:1; min-width:140px}
-  .now-decimal{font-size:16px; letter-spacing:.04em; color:var(--phos-dim)}
+  .now-text{width:100%; margin-top:10px}
+  .now-name{font-size:15px; letter-spacing:.05em}
+  .now-decimal{font-size:19px; letter-spacing:.04em; color:var(--phos-dim); margin-top:3px}
   /* LEDs */
   .leds{display:grid; grid-template-columns:1fr 1fr; gap:8px 10px}
   .led{display:flex; align-items:center; gap:7px}
@@ -272,10 +274,13 @@
     .summary [style*="font-size:54px"]{font-size:32px !important}
     .lab .target-g{font-size:40px}
     .lab .cue{font-size:22px; letter-spacing:.2em}
-    .now{margin-bottom:8px; padding:6px 12px 8px}
-    .now-glyph{font-size:28px}
-    .now-name{font-size:12px}
-    .now-decimal{font-size:13px}
+    .now{margin-bottom:8px; padding:10px 12px 8px}
+    .now-row{gap:10px}
+    .now-glyph{font-size:38px}
+    .now-pic{font-size:10px; line-height:1.4}
+    .now-text{margin-top:6px}
+    .now-name{font-size:11px}
+    .now-decimal{font-size:15px}
     .hexgrid{max-width:100%}
     .hexgrid span{font-size:19px}
     .summary [style*="grid-template-columns:repeat(4,1fr)"]{grid-template-columns:repeat(2,1fr) !important}
@@ -300,13 +305,15 @@
   </div>
 
   <div class="now" id="now">
-    <div class="now-label" id="nowLabel">STANDBY</div>
     <div class="now-row">
       <span class="now-glyph" id="nowGlyph1">䷀</span>
+      <div class="now-pic" id="nowPic"></div>
       <span class="now-arrow" id="nowArrow"></span>
       <span class="now-glyph" id="nowGlyph2"></span>
-      <span class="now-name" id="nowName">PRESS CAST TO OPEN THE FIELD</span>
-      <span class="now-decimal" id="nowDecimal"></span>
+    </div>
+    <div class="now-text">
+      <div class="now-name" id="nowName">PRESS CAST TO OPEN THE FIELD</div>
+      <div class="now-decimal" id="nowDecimal"></div>
     </div>
   </div>
 
@@ -482,7 +489,7 @@ function cast(){
   }
   while(feed.children.length>MAXROWS) feed.removeChild(feed.firstChild);
 
-  updateNow('CASCADE', kw, moving.length?trans:null, moving.map(m=>m+1));
+  updateNow(kw, moving.length?trans:null, moving.map(m=>m+1), picHtml(lines));
   $('counter').textContent=String(n).padStart(6,'0');
   $('tiltVal').textContent=Math.round(emaYang*100)+'%';
   $('churnVal').textContent=Math.round(emaMove*100)+'%';
@@ -655,9 +662,17 @@ $('btnRead').onclick=()=>{
 const TRIGRAM_ORDER=[7,3,5,1,6,2,4,0];
 const esc=s=>s.replace(/</g,'&lt;');
 function showScreen(html){ setScreen('summary'); summaryEl.innerHTML=html; }
-function updateNow(label,kw,trans,moving){
-  $('nowLabel').textContent=label;
+// traditional marks: 6 = old yin ✕ (→ yang), 9 = old yang ○ (→ yin)
+function picHtml(lines){
+  return lines.map(v=>{
+    const yang=v%2;
+    const mark=v===6?' <span style="color:#ff6a3c">✕</span>':v===9?' <span style="color:#ff6a3c">○</span>':'';
+    return `<div>${yang?'━━━━━━━':'━━━&nbsp;━━━'}${mark}</div>`;
+  }).reverse().join('');
+}
+function updateNow(kw,trans,moving,pic){
   $('nowGlyph1').textContent=glyph(kw);
+  $('nowPic').innerHTML=pic||'';
   const hasTrans=trans!=null;
   $('nowArrow').textContent=hasTrans?'→':'';
   $('nowGlyph2').textContent=hasTrans?glyph(trans):'';
@@ -665,8 +680,7 @@ function updateNow(label,kw,trans,moving){
   $('nowDecimal').textContent=(moving&&moving.length)?`${kw}.${moving.join('.')} > ${trans}`:'';
 }
 function resetNow(){
-  $('nowLabel').textContent='STANDBY';
-  $('nowGlyph1').textContent='䷀'; $('nowArrow').textContent=''; $('nowGlyph2').textContent='';
+  $('nowGlyph1').textContent='䷀'; $('nowPic').innerHTML=''; $('nowArrow').textContent=''; $('nowGlyph2').textContent='';
   $('nowName').textContent='PRESS CAST TO OPEN THE FIELD'; $('nowDecimal').textContent='';
 }
 $('btnCast').onclick=()=>{
@@ -675,33 +689,22 @@ $('btnCast').onclick=()=>{
   const moving=lines.map((v,i)=>v===6||v===9?i+1:0).filter(Boolean);
   const trans=kwOf(lines.map(v=>v===6?7:v===9?8:v));
   const bits=BITS_OF[kw], lower=TRIGRAMS[bits&7], upper=TRIGRAMS[bits>>3];
-  // traditional marks: 6 = old yin ✕ (→ yang), 9 = old yang ○ (→ yin)
-  const pic=lines.map(v=>{
-    const yang=v%2;
-    const mark=v===6?' <span style="color:#ff6a3c">✕</span>':v===9?' <span style="color:#ff6a3c">○</span>':'';
-    return `<div>${yang?'━━━━━━━':'━━━&nbsp;━━━'}${mark}</div>`;
-  }).reverse().join('');
   const changes=lines.map((v,i)=>v===6?`LINE ${i+1} · OLD YIN ✕ → YANG`:v===9?`LINE ${i+1} · OLD YANG ○ → YIN`:null)
     .filter(Boolean);
   showScreen(
     `<h2>SINGLE CAST${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
-    `<div style="display:flex; gap:34px; align-items:center; flex-wrap:wrap">`+
-    `<div class="big" style="font-size:56px">${glyph(kw)}</div>`+
-    `<div style="font-size:12px; line-height:1.5; letter-spacing:.06em">${pic}</div>`+
-    `<div><div>${kw} · ${NAMES[kw]}</div>`+
-    `<div class="dim">${upper} OVER ${lower}</div></div></div>`+
-    `<div style="max-width:56ch; line-height:1.9; margin-top:12px"><span class="dim" style="font-size:11px">JUDGMENT · </span>${HEXT[kw].j}</div>`+
+    `<div class="dim" style="font-size:12px; margin-bottom:10px">${upper} OVER ${lower}</div>`+
+    `<div style="max-width:56ch; line-height:1.9"><span class="dim" style="font-size:11px">JUDGMENT · </span>${HEXT[kw].j}</div>`+
     (moving.length?
       `<div style="margin-top:14px">${changes.join('<br>')}</div>`+
       `<div style="max-width:60ch; font-size:12px; line-height:2; margin-top:8px">${moving.map(m=>
         `<span class="dim">${kw}.${m}</span> ${HEXT[kw].l[m-1]}`).join('<br>')}</div>`+
-      `<div style="margin-top:10px">BECOMING → ${glyph(trans)} ${trans} · ${NAMES[trans]} `+
-      `<span class="dim">(${TRIGRAMS[BITS_OF[trans]>>3]} OVER ${TRIGRAMS[BITS_OF[trans]&7]})</span></div>`+
+      `<div style="margin-top:10px" class="dim">BECOMING · ${TRIGRAMS[BITS_OF[trans]>>3]} OVER ${TRIGRAMS[BITS_OF[trans]&7]}</div>`+
       `<div style="max-width:56ch; line-height:1.9; font-size:12px" class="dim">${MEAN[trans]}</div>`:
       `<div style="margin-top:14px" class="dim">NO MOVING LINES · THE STATE IS AT REST</div>`)+
     `<div class="dim" style="margin-top:16px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN TO THE STREAM</div>`);
-  updateNow('SINGLE CAST', kw, moving.length?trans:null, moving);
-  ticker.innerHTML=`ONE · <b>${glyph(kw)} ${kw} ${NAMES[kw]}</b>${moving.length?` → <b>${trans}</b>`:''}`;
+  updateNow(kw, moving.length?trans:null, moving, picHtml(lines));
+  ticker.textContent='SINGLE CAST · RESULT ABOVE · PRESS CAST TO CAST AGAIN';
   logEvent('one', q, {kw, trans: moving.length?trans:null, moving});
 };
 let kilo=null; // last field reading, for grid/reading toggle
@@ -747,7 +750,7 @@ $('btnKilo').onclick=()=>{
     `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${triRow(lo)}</div>`+
     `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')} · PRESS CAST TO RETURN</div>`;
   showScreen(kilo.readingHtml);
-  updateNow('FIELD MODE · 1000 CASTS', +topP[0][0], null, null);
+  updateNow(+topP[0][0], null, null, null);
   ticker.innerHTML=`FIELD · 1000 CASTS · MODE <b>${glyph(+topP[0][0])} ${topP[0][0]}</b> ×${topP[0][1]} · COHERENCE ${coh.toFixed(3)}`;
   logEvent('kilo', q, {top:kilo.top, coherence:+coh.toFixed(4)});
 };
@@ -951,7 +954,7 @@ function labResults(){
     `<div id="labSubmitR" style="margin-top:8px; min-height:18px; font-size:11px; letter-spacing:.1em"></div>`+
     `<div class="fine" style="margin-top:6px">⚗ NEW SESSION · ■ CLOSE</div>`;
   lab.phase='done';
-  updateNow('LAB TARGET', lab.target, null, null);
+  updateNow(lab.target, null, null, null);
   ticker.textContent='LAB · RESULTS ON SCREEN';
   logEvent('lab', '', {target:lab.target, verdict});
 }
