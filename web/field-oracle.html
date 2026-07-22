@@ -56,6 +56,10 @@
   .crt-bezel{grid-area:crt}
   .rail{grid-area:rail}
   .now{grid-area:now}
+  /* LEARN and MATRIX need real room to work — reclaim the NOW panel's
+     space and let the screen grow to near-fullscreen while either is active */
+  .console.expanded .now{display:none}
+  .console.expanded .crt{height:min(720px, 78vh, 78dvh)}
   .signature{grid-area:sig}
   @media(max-width:760px){
     .console{
@@ -308,7 +312,7 @@
   }
 </style>
 
-<div class="console" role="application" aria-label="Field Oracle continuous I Ching console">
+<div class="console" id="console" role="application" aria-label="Field Oracle continuous I Ching console">
   <div class="nameplate">
     <div class="brand">FIELD ORACLE <small>MODEL FO-64</small></div>
   </div>
@@ -612,6 +616,7 @@ function setRainView(on){
   $('crt').classList.toggle('rain-view',on);
   $('btnMatrix').classList.toggle('down',on);
   if(on) drawGrid();
+  updateExpanded();
 }
 $('btnMatrix').onclick=()=>{
   const turningOn=!rainView;
@@ -631,6 +636,12 @@ function setScreen(which){
   learnEl.classList.toggle('on', which==='learn');
   $('btnLearn').classList.toggle('down', which==='learn');
   activeScreen=which;
+  updateExpanded();
+}
+// LEARN and MATRIX need real room — collapse the NOW panel and grow the
+// screen toward fullscreen while either is active.
+function updateExpanded(){
+  $('console').classList.toggle('expanded', activeScreen==='learn' || rainView);
 }
 
 // ---- transport ----
