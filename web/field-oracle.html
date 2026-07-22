@@ -231,6 +231,10 @@
   }
   .key.key-primary:active, .key.key-primary.down{box-shadow:0 1px 0 #8f8468, 0 1px 0 rgba(255,255,255,.5) inset}
   #btnLearn{grid-column:span 2}
+  .key-pair{grid-column:span 2; display:flex; gap:0}
+  .key-pair .key{flex:1}
+  .key-pair .key:first-child{border-top-right-radius:0; border-bottom-right-radius:0; border-right:none}
+  .key-pair .key:last-child{border-top-left-radius:0; border-bottom-left-radius:0}
   .speed{display:flex; align-items:center; gap:8px}
   .speed input[type=range]{width:110px; accent-color:var(--led-red)}
   .qwrap{flex:1; min-width:160px; display:flex; align-items:center; gap:8px}
@@ -331,10 +335,12 @@
     </div>
     <div class="transport-secondary">
       <button class="key" id="btnKilo">▦ CAST ×1000</button>
+      <div class="key-pair">
+        <button class="key" id="btnMatrix">⋮ MATRIX</button>
+        <button class="key" id="btnRead">READ FIELD</button>
+      </div>
       <button class="key" id="btnStop">■ STOP</button>
-      <button class="key" id="btnRead">■ READ FIELD</button>
       <button class="key" id="btnClear">⏏ CLEAR</button>
-      <button class="key" id="btnMatrix">⋮ MATRIX</button>
       <button class="key" id="btnLab">⚗ LAB</button>
       <button class="key" id="btnLearn">✎ LEARN</button>
       <a class="key donate" href="https://ko-fi.com/neeff" target="_blank" rel="noopener noreferrer">♥ DONATE</a>
