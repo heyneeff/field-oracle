@@ -11,7 +11,11 @@
 // against a determined attacker — see docs/RESEARCH.md for the honest
 // framing this data collection lives under.
 
-const ALLOWED_ORIGIN_EXACT = new Set(['https://heyneeff.github.io']);
+const ALLOWED_ORIGIN_EXACT = new Set([
+  'https://heyneeff.github.io',
+  'capacitor://localhost', // native iOS app (Capacitor's default WKWebView origin)
+  'https://localhost',     // native Android app, if/when added (Capacitor's default there)
+]);
 const ALLOWED_ORIGIN_PREFIX = ['http://localhost', 'http://127.0.0.1'];
 
 const LAB_TARGETS = new Set([11, 52]);
