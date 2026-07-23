@@ -1,2 +1,4 @@
 .wrangler/
 node_modules/
+www/
+appstore/icon-src/
