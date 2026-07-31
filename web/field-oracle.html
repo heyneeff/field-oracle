@@ -60,6 +60,11 @@
      space and let the screen grow to near-fullscreen while either is active */
   .console.expanded .now{display:none}
   .console.expanded .crt{height:min(720px, 78vh, 78dvh)}
+  /* the kilo field-build view goes further still — full theater mode, name/rail
+     out of the way entirely, CAST/STOP/CLEAR stay put below as the way out */
+  .console.kilo-full{grid-template-columns:1fr}
+  .console.kilo-full .nameplate,.console.kilo-full .rail{display:none}
+  .console.kilo-full .crt{height:min(920px, 84vh, 84dvh)}
   .signature{grid-area:sig}
   @media(max-width:760px){
     .console{
@@ -97,7 +102,7 @@
     background:linear-gradient(115deg, rgba(255,255,255,.06) 0%, transparent 22%);
   }
   #rain{position:absolute; inset:0; width:100%; height:100%; border-radius:8px; display:none}
-  .crt.rain-view #rain{display:block}
+  .crt.rain-view #rain{display:block; cursor:grab; touch-action:none}
   .crt.rain-view .feed{display:none}
   .feed{
     position:absolute; inset:0; padding:14px 16px 34px; overflow:hidden;
@@ -151,6 +156,14 @@
     padding-bottom:8px; margin:0 0 14px}
   .summary .dim{color:var(--phos-dim)}
   .summary .big{font-size:26px; line-height:1.3}
+  /* uniform section rhythm: every labeled block (JUDGMENT, CHANGING LINES,
+     BECOMING, SEQUENCE, STRUCTURAL TRANSFORMS...) gets the same header
+     treatment and the same gap above it, so no block reads more/less
+     important than its neighbors by accident of inline styling */
+  .summary .sect{margin-top:16px}
+  .summary .sect:first-child{margin-top:0}
+  .summary .hdr{font-size:11px; letter-spacing:.14em; color:var(--phos-dim); margin-bottom:6px}
+  .summary .ln+.ln{margin-top:8px}
   .summary table{border-collapse:collapse; font-variant-numeric:tabular-nums}
   /* stat rows: name column shrinks/wraps instead of forcing horizontal scroll */
   .stat-grid{display:grid; grid-template-columns:1fr auto auto; column-gap:14px; row-gap:3px; max-width:100%}
@@ -161,6 +174,41 @@
   .summary .btn,.lab .btn{cursor:pointer; border:1px solid var(--phos-faint); border-radius:3px;
     padding:2px 10px; display:inline-block; margin:2px 4px 2px 0; user-select:none}
   .summary .btn:hover,.lab .btn:hover{border-color:var(--phos-dim); color:#ffe9b0}
+  #kiloToggle{position:absolute; top:10px; left:50%; transform:translateX(-50%); z-index:3; display:none;
+    width:92%; max-width:480px; text-align:center; font-size:11px; letter-spacing:.1em;
+    color:var(--phos); background:rgba(20,15,7,.85); border-radius:5px; padding:10px;
+    text-shadow:0 0 6px rgba(255,176,0,.4)}
+  #kiloToggle .dim{color:var(--phos-dim)}
+  #kiloToggle .btn{cursor:pointer; border:1px solid var(--phos-faint); border-radius:4px;
+    display:block; width:fit-content; margin:0 auto 8px; user-select:none;
+    font-size:16px; letter-spacing:.12em; padding:9px 24px}
+  #kiloToggle .btn:hover{border-color:var(--phos-dim); color:#ffe9b0}
+  #kiloDefs{position:absolute; left:0; right:0; bottom:28px; z-index:3; display:none;
+    max-height:40%; overflow-y:auto; box-sizing:border-box;
+    background:rgba(20,15,7,.88); border-top:1px solid var(--phos-faint);
+    padding:8px 16px; font-size:11px; line-height:1.6; color:var(--phos-dim);
+    text-shadow:0 0 6px rgba(255,176,0,.3)}
+  #kiloDefs b{color:var(--phos); font-weight:400}
+  #kiloCascade{position:absolute; top:56px; right:0; bottom:34px; width:200px; z-index:4; display:none;
+    flex-direction:row; background:rgba(20,15,7,.92); border-left:1px solid var(--phos-faint);
+    transition:width .25s ease}
+  #kiloCascade.collapsed{width:26px}
+  #kiloCascade.collapsed #kiloCascadeLog{display:none}
+  #kiloCascadeTab{flex:none; width:26px; cursor:pointer; user-select:none;
+    writing-mode:vertical-rl; text-orientation:mixed; display:flex; align-items:center; justify-content:center;
+    color:var(--phos-dim); font-size:10px; letter-spacing:.15em; border-right:1px solid var(--phos-faint)}
+  #kiloCascadeTab:hover{color:#ffe9b0}
+  #kiloCascadeLog{flex:1; overflow-y:auto; padding:8px 10px; font-size:10.5px; line-height:1.7; color:var(--phos-dim);
+    mask-image:linear-gradient(to bottom, transparent 0%, black 20%);
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0%, black 20%)}
+  #kiloCascadeLog b{color:var(--phos); font-weight:400}
+  #kiloCascadeLog>div{animation:cascadeFlow .5s ease-out both}
+  @keyframes cascadeFlow{
+    0%{opacity:0; transform:translateY(-8px); color:#fff}
+    55%{color:#ffe9b0}
+    100%{opacity:1; transform:translateY(0); color:var(--phos-dim)}
+  }
+  @media(max-width:760px){ #kiloCascade{width:140px} }
   .hexgrid{display:grid; grid-template-columns:repeat(8,1fr); gap:2px; max-width:420px}
   .hexgrid span{cursor:pointer; font-size:24px; text-align:center; padding:2px; border-radius:3px}
   .hexgrid span:hover{background:rgba(255,176,0,.14)}
@@ -348,6 +396,12 @@
       <div class="summary" id="summary"></div>
       <div class="lab" id="lab"></div>
       <div class="summary" id="learn"></div>
+      <div id="kiloToggle">≡ VIEW THE READING</div>
+      <div id="kiloDefs"></div>
+      <div id="kiloCascade">
+        <div id="kiloCascadeTab">▤ CASCADE</div>
+        <div id="kiloCascadeLog"></div>
+      </div>
       <div class="ticker" id="ticker">STANDBY · PRESS CAST TO OPEN THE FIELD</div>
     </div>
   </div>
@@ -592,9 +646,21 @@ addEventListener('resize',()=>{}); // canvas re-measured every frame via clientW
 // left-to-right; a full row pushes the field down. No trails, no numbers.
 // Cells re-color live from window coherence: when a hexagram recurs beyond
 // chance, every instance of it on screen lights up.
-let rainView=false, gridRows=[], curRow=[];
+let rainView=false, rainColorMode='live', gridRows=[], curRow=[];
+let kiloAnimTimer=null, kiloStartTimer=null;
+function stopKiloAnim(){ clearInterval(kiloAnimTimer); kiloAnimTimer=null; }
+// back out of a kilo session into neutral ground, e.g. when another
+// button (CAST, CLEAR, READ FIELD, MATRIX) takes over the crt
+function exitKiloView(){
+  if(kiloStartTimer){ clearTimeout(kiloStartTimer); kiloStartTimer=null; }
+  if(rainColorMode==='kilo'){
+    stopKiloAnim(); stopSphereAnim(); rainColorMode='live'; if(rainView) setRainView(false);
+    $('console').classList.remove('kilo-full');
+  }
+}
 const rainCv=$('rain'), rg=rainCv.getContext('2d');
-const GRID_COLS=6, PAD=16;
+const PAD=16;
+function gridCols(){ return 6; } // MATRIX's sparse rain — kilo no longer uses the flat grid at all
 function sizeRain(){
   const r=devicePixelRatio||1, w=rainCv.clientWidth, h=rainCv.clientHeight;
   if(rainCv.width!==w*r||rainCv.height!==h*r){
@@ -602,9 +668,8 @@ function sizeRain(){
   }
   return {w,h};
 }
-function cellW(){ return (rainCv.clientWidth-PAD*2)/GRID_COLS; }
+function cellW(){ return (rainCv.clientWidth-PAD*2)/gridCols(); }
 function cellH(){ return cellW()*(46/42); } // keep the original cell aspect ratio
-function gridCols(){ return GRID_COLS; }
 function gridPush(kw){
   curRow.push(kw);
   if(curRow.length>=gridCols()){
@@ -613,13 +678,20 @@ function gridPush(kw){
   }
   if(rainView) drawGrid();
 }
+// MATRIX colors by recurrence in the rolling window
+function cellStyle(kw,liveCounts){
+  const hits=liveCounts[kw]||0;
+  if(hits>=4) return ['#ff6a3c','#ff5030',14];  // strong coherence — the pattern burning through
+  if(hits>=3) return ['#ffe9b0','#ffd070',10];  // coherence emerging
+  return ['rgba(255,176,0,0.5)',null,0];        // background field
+}
 function drawGrid(){
   const {w,h}=sizeRain();
   const cw=cellW(), ch=cellH();
   rg.fillStyle='#140f07'; rg.fillRect(0,0,w,h);
   rg.textAlign='center'; rg.textBaseline='middle';
   rg.font=(cw*0.72)+'px '+getComputedStyle(document.body).fontFamily;
-  // coherence per hexagram from the rolling window (baseline = win.length/64)
+  // coherence per hexagram from the rolling window (baseline = win.length/64); unused in kilo mode
   const counts={}; win.forEach(k=>counts[k]=(counts[k]||0)+1);
   const rows=[curRow,...gridRows];
   const maxRows=Math.ceil((h-40)/ch);
@@ -627,31 +699,267 @@ function drawGrid(){
     const y=PAD+18+r*ch;
     for(let c=0;c<rows[r].length;c++){
       const kw=rows[r][c], x=PAD+c*cw+cw/2;
-      const hits=counts[kw]||0;
-      if(hits>=4){        // strong coherence — the pattern burning through
-        rg.fillStyle='#ff6a3c'; rg.shadowColor='#ff5030'; rg.shadowBlur=14;
-      } else if(hits>=3){ // coherence emerging
-        rg.fillStyle='#ffe9b0'; rg.shadowColor='#ffd070'; rg.shadowBlur=10;
-      } else {            // background field
-        rg.fillStyle='rgba(255,176,0,0.5)'; rg.shadowBlur=0;
-      }
+      const [fill,glow,blur]=cellStyle(kw,counts);
+      rg.fillStyle=fill; rg.shadowColor=glow||'transparent'; rg.shadowBlur=blur;
       rg.fillText(String.fromCodePoint(0x4DC0+kw-1), x, y);
     }
     rg.shadowBlur=0;
   }
   rg.textBaseline='alphabetic';
 }
+// tap/click a cell to see what it is — kilo mode reports how that hexagram did
+// across the whole 1000; live MATRIX mode reports its count in the rolling window
+function cellInfoText(kw){
+  if(rainColorMode==='kilo' && kilo){
+    const base=kilo.casts.length/64, c=kilo.counts[kw]||0;
+    const rank=kilo.top[0]===kw?'MODE · ':kilo.top[1]===kw?'2ND · ':kilo.top[2]===kw?'3RD · ':'';
+    return `${rank}${glyph(kw)} ${kw} ${NAMES[kw]} · ×${c} · ${(c/base).toFixed(1)}× BASELINE`;
+  }
+  const c=win.filter(k=>k===kw).length;
+  return `${glyph(kw)} ${kw} ${NAMES[kw]} · ×${c} IN LAST ${win.length}`;
+}
+
+// ---- the kilo field as an actual object: 64 fixed points on a sphere,
+// placed by each hexagram's own 6-line binary structure (gray-code order),
+// so hexagrams one line apart sit near each other in space — recurrence
+// becomes real accumulated light at a real place, not a scroll-position color ----
+const HEX_SPHERE = (()=>{
+  const orderOf=new Array(64); // orderOf[bits] = position along the gray-code walk
+  for(let i=0;i<64;i++) orderOf[i^(i>>1)]=i;
+  const pts={};
+  for(let kw=1;kw<=64;kw++){
+    const idx=orderOf[BITS_OF[kw]];
+    const y=1-(idx/63)*2;
+    const r=Math.sqrt(Math.max(0,1-y*y));
+    const theta=idx*Math.PI*(3-Math.sqrt(5)); // golden angle
+    pts[kw]={x:Math.cos(theta)*r, y, z:Math.sin(theta)*r};
+  }
+  return pts;
+})();
+// the field's actual structure: every hexagram has exactly 6 neighbors, one
+// line-change away. Drawing that graph is what makes this a real object
+// instead of 64 scattered dots — Indra's Net rendered as its own adjacency.
+const HEX_EDGES = (()=>{
+  const edges=[];
+  for(let kw=1;kw<=64;kw++){
+    const bits=BITS_OF[kw];
+    for(let bit=0;bit<6;bit++){
+      const nkw=KING_WEN[bits^(1<<bit)];
+      if(nkw>kw) edges.push([kw,nkw]);
+    }
+  }
+  return edges;
+})();
+// the hypercube graph's distance is just Hamming distance — no BFS needed,
+// XOR the two line-patterns and count the differing bits
+// coherence-by-count only asks "does one hexagram dominate?" — it's blind to
+// structure. This asks the structural question instead: is the MODE hexagram's
+// whole neighborhood (itself + its 6 one-line neighbors) running hot together,
+// even if no single point in it is a huge outlier on its own?
+function neighborhoodCoherence(topKw,counts,N){
+  const bits=BITS_OF[topKw];
+  const group=[topKw,...Array.from({length:6},(_,i)=>KING_WEN[bits^(1<<i)])];
+  const total=group.reduce((s,kw)=>s+(counts[kw]||0),0);
+  const expected=group.length*(N/64);
+  return {ratio:total/expected, total, expected};
+}
+// composes the field's raw stats into a short read on the *shape* of the answer:
+// how sharp it is, whether the top hexagrams are one family or a scattered mix,
+// tilt, and where the structural tension concentrates
+// every field is a real answer — this describes its character, not whether
+// it "worked." A chorus isn't a failed solo; a wide answer isn't a weak one.
+// SHAPE is the answer itself — MODE/2ND/3RD, named and defined — not a
+// statistical narrative about them
+function shapeOfAnswer(topP){
+  const ranks=['MODE','2ND','3RD'];
+  return topP.slice(0,3).map(([k,c],i)=>
+    `<div style="margin-bottom:8px"><span class="dim" style="font-size:9px; letter-spacing:.15em">${ranks[i]}</span> `+
+    `<b>${glyph(+k)} ${k} ${NAMES[k]}</b> ×${c} — ${MEAN[k]}</div>`
+  ).join('');
+}
+let sphereAnimId=null, sphereRotY=0, sphereIntroT=1, heat={}, pulses=[], lastProjected=[];
+function stopSphereAnim(){ if(sphereAnimId){ cancelAnimationFrame(sphereAnimId); sphereAnimId=null; } }
+function startSphereAnim(){ sphereIntroT=0; if(!sphereAnimId) sphereAnimId=requestAnimationFrame(sphereFrame); }
+function sphereFrame(){
+  if(rainColorMode!=='kilo' || !rainView){ sphereAnimId=null; return; }
+  sphereRotY+=0.0035;
+  if(sphereIntroT<1) sphereIntroT=Math.min(1,sphereIntroT+0.02);
+  drawSphere();
+  sphereAnimId=requestAnimationFrame(sphereFrame);
+}
+let sphereRotX=0.15, sphereZoom=1; // rotX = manual pitch tilt; zoom = user-controlled scale
+function projectPoint(p,w,h){
+  const cosY=Math.cos(sphereRotY), sinY=Math.sin(sphereRotY);
+  const x=p.x*cosY+p.z*sinY, z0=-p.x*sinY+p.z*cosY, y0=p.y;
+  const cosX=Math.cos(sphereRotX), sinX=Math.sin(sphereRotX);
+  const y=y0*cosX-z0*sinX, z=y0*sinX+z0*cosX;
+  const CAM=3.6, FOCAL=2.6, zc=z+CAM, scale=(FOCAL/zc)*sphereZoom, R=Math.min(w,h)*0.44;
+  return {sx:w/2+x*scale*R, sy:h/2-y*scale*R, scale};
+}
+function spherePulse(kw){
+  heat[kw]=Math.min(1,(heat[kw]||0)+1/15); // saturates around the ~15.6/1000 baseline count
+  pulses.push({kw,t:performance.now()});
+}
+function drawSphere(){
+  const {w,h}=sizeRain();
+  rg.fillStyle='#140f07'; rg.fillRect(0,0,w,h);
+  rg.textAlign='center'; rg.textBaseline='middle';
+  const now=performance.now();
+  pulses=pulses.filter(p=>now-p.t<900);
+  const [a,b,c]=(kilo&&kilo.top)||[];
+  const breathe=0.5+0.5*Math.sin(now/420); // slow pulse so MODE/2ND/3RD feel alive, not static
+  const proj={};
+  for(let kw=1;kw<=64;kw++){
+    const p=HEX_SPHERE[kw];
+    const ip=sphereIntroT<1?{x:p.x*sphereIntroT,y:p.y*sphereIntroT,z:p.z*sphereIntroT}:p;
+    proj[kw]=projectPoint(ip,w,h);
+  }
+  // the neighbor web first, underneath everything — mostly faint structure,
+  // but an edge lights up when BOTH its ends are running above chance together:
+  // that's a real resonant cluster, not just one point spiking in isolation
+  const base=kilo?kilo.casts.length/64:0;
+  for(const [k1,k2] of HEX_EDGES){
+    const p1=proj[k1], p2=proj[k2];
+    const depthFade=Math.max(0,Math.min(1,(((p1.scale+p2.scale)/2)-0.55)/0.85));
+    if(depthFade<=0.03) continue;
+    let resonance=0;
+    if(kilo && (heat[k1]||0)>0 && (heat[k2]||0)>0){
+      const e1=Math.max(0,(kilo.counts[k1]||0)/base-1), e2=Math.max(0,(kilo.counts[k2]||0)/base-1);
+      resonance=Math.min(1,Math.min(e1,e2)*1.4);
+    }
+    if(resonance>0.1){
+      rg.strokeStyle=`rgba(255,150,60,${(depthFade*(0.15+resonance*0.85)).toFixed(3)})`;
+      rg.lineWidth=1+resonance*2;
+    } else {
+      rg.strokeStyle=`rgba(255,176,0,${(depthFade*0.12).toFixed(3)})`;
+      rg.lineWidth=1;
+    }
+    rg.beginPath(); rg.moveTo(p1.sx,p1.sy); rg.lineTo(p2.sx,p2.sy); rg.stroke();
+  }
+  const entries=Object.keys(proj).map(k=>({kw:+k, proj:proj[k]}));
+  entries.sort((x,y)=>x.proj.scale-y.proj.scale); // painter's algorithm: far (small) first
+  lastProjected=entries.map(({kw,proj:pj})=>({kw,sx:pj.sx,sy:pj.sy}));
+  for(const {kw,proj:pj} of entries){
+    const depthFade=Math.max(0.28, Math.min(1,(pj.scale-0.5)/0.9));
+    const heatV=heat[kw]||0;
+    const pulse=pulses.find(p=>p.kw===kw);
+    const flash=pulse?Math.max(0,1-(now-pulse.t)/900):0;
+    let fill=`rgba(255,176,0,${(0.16+heatV*0.5)*depthFade})`, glow=0, sizeMult=1;
+    if(kw===a){ fill=`rgba(255,90,40,${Math.min(1,0.8+heatV*0.2)*depthFade})`; glow=30+breathe*16; sizeMult=1.55; }
+    else if(kw===b){ fill=`rgba(255,225,150,${Math.min(1,0.72+heatV*0.25)*depthFade})`; glow=22+breathe*12; sizeMult=1.35; }
+    else if(kw===c){ fill=`rgba(255,190,90,${Math.min(1,0.64+heatV*0.3)*depthFade})`; glow=16+breathe*10; sizeMult=1.18; }
+    if(flash>0) glow=Math.max(glow,18*flash);
+    rg.font=(24*sizeMult*Math.max(0.55,Math.min(1.7,pj.scale)))+'px '+getComputedStyle(document.body).fontFamily;
+    if(glow>0){ // double-pass bloom: soft halo first, crisp glyph on top
+      rg.shadowColor='rgba(255,150,60,'+Math.min(1,Math.max(flash,0.75))+')';
+      rg.shadowBlur=glow;
+      rg.fillStyle=fill;
+      rg.fillText(glyph(kw), pj.sx, pj.sy);
+    }
+    rg.shadowBlur=0;
+    rg.fillStyle=fill;
+    rg.fillText(glyph(kw), pj.sx, pj.sy);
+  }
+}
+// grab-to-spin + wheel/pinch-to-zoom the sphere (Pointer Events cover mouse+touch+pen alike)
+const activePointers=new Map();
+let dragActive=false, dragLastX=0, dragLastY=0, dragMoved=false, pinchStartDist=null, pinchStartZoom=1;
+function pointerDist(){
+  const pts=[...activePointers.values()]; if(pts.length<2) return null;
+  return Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+}
+rainCv.addEventListener('pointerdown',e=>{
+  if(!rainView || rainColorMode!=='kilo') return;
+  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  rainCv.setPointerCapture(e.pointerId);
+  if(activePointers.size===2){ pinchStartDist=pointerDist(); pinchStartZoom=sphereZoom; dragActive=false; }
+  else if(activePointers.size===1){ dragActive=true; dragMoved=false; dragLastX=e.clientX; dragLastY=e.clientY; }
+});
+rainCv.addEventListener('pointermove',e=>{
+  if(!activePointers.has(e.pointerId)) return;
+  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(activePointers.size>=2){
+    const d=pointerDist();
+    if(d && pinchStartDist){ sphereZoom=Math.max(0.5,Math.min(2.5,pinchStartZoom*(d/pinchStartDist))); drawSphere(); }
+    return;
+  }
+  if(!dragActive) return;
+  const dx=e.clientX-dragLastX, dy=e.clientY-dragLastY;
+  if(Math.abs(dx)>3||Math.abs(dy)>3) dragMoved=true;
+  sphereRotY+=dx*0.006;
+  sphereRotX=Math.max(-1.4,Math.min(1.4,sphereRotX+dy*0.006));
+  drawSphere();
+  dragLastX=e.clientX; dragLastY=e.clientY;
+});
+function endPointer(e){
+  activePointers.delete(e.pointerId);
+  if(activePointers.size<2) pinchStartDist=null;
+  if(activePointers.size===0) dragActive=false;
+}
+rainCv.addEventListener('pointerup',endPointer);
+rainCv.addEventListener('pointercancel',endPointer);
+rainCv.addEventListener('wheel',e=>{
+  if(!rainView || rainColorMode!=='kilo') return;
+  e.preventDefault();
+  sphereZoom=Math.max(0.5,Math.min(2.5,sphereZoom-e.deltaY*0.001));
+  drawSphere();
+},{passive:false});
+rainCv.addEventListener('click',e=>{
+  if(!rainView) return;
+  if(dragMoved){ dragMoved=false; return; } // that was a grab-and-spin, not a tap
+  const rect=rainCv.getBoundingClientRect();
+  const x=e.clientX-rect.left, y=e.clientY-rect.top;
+  if(rainColorMode==='kilo'){
+    let best=null, bestD=Infinity;
+    for(const p of lastProjected){ const d=(p.sx-x)**2+(p.sy-y)**2; if(d<bestD){ bestD=d; best=p; } }
+    if(best && bestD<32*32) ticker.textContent=cellInfoText(best.kw);
+    return;
+  }
+  const cw=cellW(), ch=cellH();
+  const col=Math.floor((x-PAD)/cw);
+  const row=Math.round((y-(PAD+18))/ch);
+  const rows=[curRow,...gridRows];
+  if(row<0 || row>=rows.length || !rows[row] || col<0 || col>=rows[row].length) return;
+  const kw=rows[row][col]; if(!kw) return;
+  ticker.textContent=cellInfoText(kw);
+});
 function setRainView(on){
   rainView=on;
   $('crt').classList.toggle('rain-view',on);
-  $('btnMatrix').classList.toggle('down',on);
-  if(on) drawGrid();
+  if(on){ if(rainColorMode==='kilo') startSphereAnim(); else drawGrid(); }
+  else stopSphereAnim();
   updateExpanded();
+  updateKiloToggle();
+}
+// the "view the reading" affordance and the hexagram definitions only make
+// sense while the kilo sphere itself is on screen (not covered by summary/lab/learn)
+function updateKiloToggle(){
+  const on=(rainColorMode==='kilo'&&rainView&&activeScreen==='feed')?'block':'none';
+  $('kiloToggle').style.display=on;
+  $('kiloDefs').style.display=on;
+  $('kiloCascade').style.display=on==='block'?'flex':'none';
+}
+function kiloDefsHtml(){
+  const label=t=>`<span style="letter-spacing:.18em; font-size:9px" class="dim">${t}</span>`;
+  return `<div>${label('SHAPE')}<br>${kilo.shapeText}</div>`+
+    `<div style="margin-top:10px">${label('FLOW')}<br>${kilo.flowText}</div>`;
+}
+$('kiloToggle').onclick=e=>{ if(kilo && e.target.closest('[data-kv="reading"]')) showScreen(kilo.readingHtml); };
+$('kiloCascadeTab').onclick=()=>{ $('kiloCascade').classList.toggle('collapsed'); };
+function cascadeLog(i,kw){
+  const log=$('kiloCascadeLog');
+  const row=document.createElement('div');
+  row.innerHTML=`<b>${glyph(kw)}</b> ${String(i+1).padStart(4,'0')} ${NAMES[kw]}`;
+  log.appendChild(row);
+  log.scrollTop=log.scrollHeight;
 }
 $('btnMatrix').onclick=()=>{
+  exitKiloView(); // a running kilo replay doesn't count as "MATRIX is on" for this toggle
   const turningOn=!rainView;
   if(turningOn) setScreen('feed'); // make sure no overlay (LEARN/LAB/summary) is covering the rain view
+  rainColorMode='live';
   setRainView(turningOn);
+  $('btnMatrix').classList.toggle('down',turningOn);
   if(turningOn && !running) start(); // MATRIX fires the field itself — no need to separately press STOP first
 };
 addEventListener('resize',()=>{ if(rainView) drawGrid(); });
@@ -667,6 +975,7 @@ function setScreen(which){
   $('btnLearn').classList.toggle('down', which==='learn');
   activeScreen=which;
   updateExpanded();
+  updateKiloToggle();
 }
 // LEARN and MATRIX need real room — collapse the NOW panel and grow the
 // screen toward fullscreen while either is active.
@@ -682,8 +991,8 @@ function start(){ if(running) return; running=true;
 function hold(){ running=false; clearTimeout(timer); led('ledCast',false);
   $('btnStop').classList.add('down');
   ticker.innerHTML='HOLD · FIELD PAUSED AT CAST '+n; }
-$('btnStop').onclick=()=>{ running ? hold() : start(); setScreen('feed'); };
-$('btnClear').onclick=()=>{ hold(); setScreen('feed');
+$('btnStop').onclick=()=>{ exitKiloView(); running ? hold() : start(); setScreen('feed'); };
+$('btnClear').onclick=()=>{ exitKiloView(); hold(); setScreen('feed');
   n=0; emaYang=.5; emaMove=.25; win=[]; lineRun=[0,0,0,0,0,0]; upperRun=0; lastUpper=null;
   allPrimary={}; allTrans={}; hotTotals=[0,0,0,0,0,0];
   gridRows=[]; curRow=[]; if(rainView) drawGrid();
@@ -693,6 +1002,7 @@ $('btnClear').onclick=()=>{ hold(); setScreen('feed');
   ['ledRecur','ledHot','ledRun'].forEach(i=>led(i,false));
   ticker.textContent='STANDBY · PRESS CAST TO OPEN THE FIELD'; };
 $('btnRead').onclick=()=>{
+  exitKiloView();
   if(!n){ ticker.textContent='NO FIELD YET · PRESS CAST FIRST'; return; }
   setScreen('summary');
   const base=n/64;
@@ -716,6 +1026,12 @@ $('btnRead').onclick=()=>{
 const TRIGRAM_ORDER=[7,3,5,1,6,2,4,0];
 const esc=s=>s.replace(/</g,'&lt;');
 function showScreen(html){ setScreen('summary'); summaryEl.innerHTML=html; }
+// one labeled block, same header style and same gap above it every time —
+// the unit every readout section (JUDGMENT, CHANGING LINES, BECOMING,
+// SEQUENCE, STRUCTURAL TRANSFORMS...) is built from, so rhythm never drifts
+function sec(label,bodyHtml){
+  return `<div class="sect"><div class="hdr">${label}</div>${bodyHtml}</div>`;
+}
 function nowHexHtml(kw){
   return `<div class="now-hex"><span class="now-glyph">${glyph(kw)}</span><div class="now-num">${kw}</div></div>`;
 }
@@ -738,19 +1054,24 @@ function resetNow(){
   $('nowName').textContent='PRESS CAST TO OPEN THE FIELD'; $('nowDecimal').textContent='';
 }
 $('btnCast').onclick=()=>{
+  exitKiloView();
   const q=$('question').value.trim();
   const lines=toss(), kw=kwOf(lines);
   const moving=lines.map((v,i)=>v===6||v===9?i+1:0).filter(Boolean);
   const trans=kwOf(lines.map(v=>v===6?7:v===9?8:v));
+  const changeRows=moving.map(m=>
+    `<div class="ln"><span class="dim">LINE ${m} · ${lines[m-1]===6?'OLD YIN ✕ → YANG':'OLD YANG ○ → YIN'}</span><br>${HEXT[kw].l[m-1]}</div>`
+  ).join('');
   showScreen(
     `<h2>SINGLE CAST${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
     `<div style="max-width:56ch; line-height:1.9">${kw} - ${NAMES[kw]} - ${HEXT[kw].j}</div>`+
     (moving.length?
-      `<div style="max-width:60ch; font-size:12px; line-height:2; margin-top:14px">${moving.map(m=>
-        `<span class="dim">${kw}.${m}</span> ${HEXT[kw].l[m-1]}`).join('<br>')}</div>`+
-      `<div style="margin-top:18px; color:#ffe9b0; font-weight:700; letter-spacing:.2em; text-shadow:0 0 8px rgba(255,208,112,.8)">CHANGING TO</div>`+
-      `<div style="max-width:56ch; line-height:1.9; margin-top:6px">${trans} - ${NAMES[trans]} - ${HEXT[trans].j}</div>`:
-      `<div style="margin-top:14px" class="dim">NO MOVING LINES · THE STATE IS AT REST</div>`)+
+      sec('CHANGING LINES', `<div style="max-width:60ch; font-size:12px; line-height:1.7">${changeRows}</div>`)+
+      `<div class="sect"><div class="hdr" style="color:#ffe9b0; font-weight:700; letter-spacing:.2em; text-shadow:0 0 8px rgba(255,208,112,.8)">CHANGING TO</div>`+
+        `<div style="max-width:56ch; line-height:1.9; font-size:12px">${trans} - ${NAMES[trans]} - ${HEXT[trans].j}</div></div>`+
+      sequenceHtml(kw,lines,moving):
+      sec('AT REST', `<div class="dim">NO MOVING LINES · THE STATE IS AT REST</div>`))+
+    structureHtml(kw)+
     `<div class="dim" style="margin-top:16px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN TO THE STREAM</div>`);
   updateNow(kw, moving.length?trans:null, moving);
   ticker.textContent='SINGLE CAST · RESULT ABOVE · PRESS CAST TO CAST AGAIN';
@@ -778,19 +1099,24 @@ $('btnKilo').onclick=()=>{
   kilo={casts:castLog, top:topP.map(([k])=>+k), counts:prim, q};
   const H=Object.values(prim).reduce((s,c)=>s+(c/N)**2,0);
   const coh=(H-1/64)/(1-1/64);
+  kilo.coherence=coh;
   const triRow=o=>TRIGRAM_ORDER.map(t=>`<span>${TRIGRAMS[t].slice(0,4)}</span><span class="dim">${Math.round((o[t]||0)/N*100)}%</span>`).join('');
   const yangPct=yangTotal/(N*6)*100;
   const lineCells=hotL.map((c,i)=>{
     const pct=c/N*100, hotCls=Math.abs(pct-25)>=2.8; // ~2σ at n=1000
     return `<span${hotCls?' style="color:#ff6a3c"':''}>L${i+1}</span><span class="${hotCls?'':'dim'}">${pct.toFixed(1)}%</span>`;
   }).join('');
+  const neigh=neighborhoodCoherence(topP[0][0],prim,N);
+  kilo.flowText=topT.map(([k,c])=>`${glyph(+k)} ${k} ${NAMES[k]} ×${c}`).join(' · ');
+  kilo.shapeText=shapeOfAnswer(topP);
   kilo.readingHtml=
     `<h2>FIELD READING · ${N} CASTS${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
     `<div style="margin-bottom:8px"><span class="btn" data-kv="grid">▦ VIEW THE FIELD GRID</span></div>`+
     `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
     `<div class="stat-grid">${topP.map(([k,c])=>`<span>${glyph(+k)} ${k} ${NAMES[k]}</span><span>×${c}</span><span class="dim">${(c/base).toFixed(1)}× BASELINE</span>`).join('')}</div>`+
-    `<div style="margin-top:10px">FLOWING → ${topT.map(([k,c])=>`${glyph(+k)} ${k} ×${c}`).join(' · ')}</div>`+
-    `<div style="margin-top:10px">COHERENCE ${coh.toFixed(4)} <span class="dim">(NOISE FLOOR ~0.01–0.03 AT N=1000)</span></div>`+
+    `<div style="margin-top:10px">FLOWING → ${kilo.flowText}</div>`+
+    `<div style="margin-top:10px">COHERENCE ${coh.toFixed(4)}</div>`+
+    `<div>NEIGHBORHOOD (MODE + 6 NEAREST) ${neigh.total} CASTS <span class="dim">· ${neigh.ratio.toFixed(2)}× EXPECTED</span></div>`+
     `<div>TILT ${yangPct>=50?'YANG':'YIN'} · ${yangPct.toFixed(1)}% YANG LINES</div>`+
     `<div style="margin-top:10px; font-size:11px" class="dim">CHANGING LINES BY POSITION · BASELINE 25% · RED = BEYOND ~2σ</div>`+
     `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${lineCells}</div>`+
@@ -798,33 +1124,48 @@ $('btnKilo').onclick=()=>{
     `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${triRow(up)}</div>`+
     `<div style="font-size:11px" class="dim">LOWER TRIGRAM WEATHER</div>`+
     `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${triRow(lo)}</div>`+
-    `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')} · PRESS CAST TO RETURN</div>`;
-  showScreen(kilo.readingHtml);
+    `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')}</div>`+
+    `<div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--phos-faint)">`+
+    `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
+    `<div style="max-width:58ch; line-height:1.8; margin-top:8px">${kilo.shapeText}</div>`+
+    `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN</div></div>`;
+  // the ticker reads first, alone, before anything visual — then the field
+  // itself assembles into view (fades in from center) and the casts pulse it live
+  stopKiloAnim();
+  if(kiloStartTimer){ clearTimeout(kiloStartTimer); kiloStartTimer=null; }
+  if(running) hold(); // don't let a live continuous cast collide with the sphere draw
+  rainColorMode='kilo';
+  heat={}; pulses=[]; sphereRotY=0; sphereRotX=0.15; sphereZoom=1;
+  $('kiloCascadeLog').innerHTML=''; $('kiloCascade').classList.remove('collapsed');
+  setScreen('feed'); // uncover the crt (still blank/dark for a beat — no sphere yet)
+  ticker.textContent=`FIELD · CASTING 1000${q?' · “'+esc(q).toUpperCase()+'”':''}...`;
   updateNowField(topP.map(([k])=>+k));
-  ticker.innerHTML=`FIELD · 1000 CASTS · MODE <b>${glyph(+topP[0][0])} ${topP[0][0]}</b> ×${topP[0][1]} · COHERENCE ${coh.toFixed(3)}`;
+  kiloStartTimer=setTimeout(()=>{
+    kiloStartTimer=null;
+    setRainView(true); // now the sphere assembles into place (intro animation)
+    $('console').classList.add('kilo-full');
+    $('kiloToggle').innerHTML=kiloHeaderHtml();
+    $('kiloDefs').innerHTML=kiloDefsHtml();
+    let i=0;
+    kiloAnimTimer=setInterval(()=>{
+      for(let k=0;k<20 && i<N;k++,i++){ spherePulse(castLog[i]); cascadeLog(i,castLog[i]); }
+      if(i>=N){ stopKiloAnim(); ticker.textContent='THE FIELD · EVERY JEWEL OF THE THOUSAND · TAP ONE'; }
+    },40);
+  },1000);
   logEvent('kilo', q, {top:kilo.top, coherence:+coh.toFixed(4)});
   bumpUsage();
 };
-function kiloGrid(){
+function kiloHeaderHtml(){
   const [a,b,c]=kilo.top;
-  const style=kw=> kw===a?'color:#ff6a3c; text-shadow:0 0 10px rgba(255,80,48,.9)'
-    : kw===b?'color:#ffe9b0; text-shadow:0 0 8px rgba(255,208,112,.8)'
-    : kw===c?'color:#ffd070; text-shadow:0 0 6px rgba(255,208,112,.55)'
-    : 'color:rgba(255,176,0,.42); text-shadow:none';
-  showScreen(
-    `<h2>THE FIELD · 1000 CASTS IN THROW ORDER${kilo.q?' · “'+esc(kilo.q).toUpperCase()+'”':''}</h2>`+
-    `<div style="margin-bottom:8px"><span class="btn" data-kv="reading">≡ VIEW THE READING</span>`+
-    ` <span style="font-size:11px" class="dim">MODE <span style="color:#ff6a3c">${glyph(a)} ${a} ×${kilo.counts[a]}</span>`+
+  return `<span class="btn" data-kv="reading">≡ VIEW THE READING</span> `+
+    `<span class="dim">MODE <span style="color:#ff6a3c">${glyph(a)} ${a} ×${kilo.counts[a]}</span>`+
     ` · 2ND <span style="color:#ffe9b0">${glyph(b)} ${b} ×${kilo.counts[b]}</span>`+
-    ` · 3RD <span style="color:#ffd070">${glyph(c)} ${c} ×${kilo.counts[c]}</span> · BASELINE 15.6</span></div>`+
-    `<div style="font-size:15px; line-height:1.45; letter-spacing:.06em; word-break:break-all">`+
-    kilo.casts.map(kw=>`<span style="${style(kw)}" title="${kw} ${NAMES[kw]}">${glyph(kw)}</span>`).join('')+
-    `</div>`);
-  ticker.textContent='FIELD GRID · EVERY JEWEL OF THE THOUSAND · HOVER FOR NAMES';
+    ` · 3RD <span style="color:#ffd070">${glyph(c)} ${c} ×${kilo.counts[c]}</span> · BASELINE 15.6</span>`;
 }
 summaryEl.addEventListener('click',e=>{
   const v=e.target.closest('[data-kv]'); if(!v||!kilo) return;
-  if(v.dataset.kv==='grid') kiloGrid(); else showScreen(kilo.readingHtml);
+  if(v.dataset.kv==='grid'){ setScreen('feed'); ticker.textContent='THE FIELD · EVERY JEWEL OF THE THOUSAND · TAP ONE'; }
+  else showScreen(kilo.readingHtml);
 });
 
 // ---- SYNC: anonymous cross-device log · POOL: public LAB aggregate ----
@@ -917,8 +1258,10 @@ function showHelp(){
     `<div style="max-width:60ch; font-size:13px; line-height:2.1; margin-top:12px">`+
     `<div><b>▶ CAST</b> — one throw, right now. The panel above shows the hexagram (and what it's becoming,
     if any lines moved); the screen below gives the full reading.</div>`+
-    `<div style="margin-top:8px"><b>▦ CAST ×1000</b> — casts about 1000 hexagrams at once and shows the
-    field's shape: which ones came up more than chance, how the lines and trigrams distributed.</div>`+
+    `<div style="margin-top:8px"><b>▦ CAST ×1000</b> — casts about 1000 hexagrams onto a real field: all
+    64 hexagrams live at fixed points on a sphere, placed by their own line structure, and each cast pulses
+    its point with light. Tap any hexagram to see how it did. The full numeric reading (lines, trigrams,
+    coherence) is one tap away via VIEW THE READING.</div>`+
     `<div style="margin-top:8px"><b>⋮ MATRIX</b> — a live grid of hexagrams streaming in, one per cast,
     color-lit when a hexagram repeats beyond chance. Starts the field running by itself.</div>`+
     `<div style="margin-top:8px"><b>■ READ FIELD</b> — a summary of everything cast so far in this session
@@ -1094,6 +1437,68 @@ const TRI=[
   dir:'WEST',sea:'AUTUMN',body:'MOUTH',ani:'SHEEP',
   q:'Joy, exchange, the open surface — the lake that reflects and refreshes, the mouth that speaks and tastes. One yielding line open above two strong. Excess: indulgence, mere talk.'}];
 const TRIG_BY_B={}; TRI.forEach(t=>TRIG_BY_B[t.b]=t);
+
+// ---- structural transforms: nuclear/reverse/inverse hexagrams, five-element
+// trigram relation, recursive nuclear. All pure bit ops on the same BITS_OF/
+// KING_WEN tables the cast already uses — no new state, just other readings
+// of the same six lines. ----
+const ELEM_BY_B={7:'METAL',3:'METAL',5:'FIRE',1:'WOOD',6:'WOOD',2:'WATER',4:'EARTH',0:'EARTH'};
+const ELEM_GEN={WOOD:'FIRE',FIRE:'EARTH',EARTH:'METAL',METAL:'WATER',WATER:'WOOD'};
+const ELEM_KE={WOOD:'EARTH',EARTH:'WATER',WATER:'FIRE',FIRE:'METAL',METAL:'WOOD'};
+function elemRelation(upB,loB){
+  const eu=ELEM_BY_B[upB], el=ELEM_BY_B[loB];
+  if(eu===el) return {eu,el,rel:`SAME ELEMENT · ${eu} throughout — undiluted resonance, no friction between the halves`};
+  if(ELEM_GEN[eu]===el) return {eu,el,rel:`${eu} GENERATES ${el} · upper feeds and supports the lower — the situation flows downward without resistance`};
+  if(ELEM_GEN[el]===eu) return {eu,el,rel:`${el} GENERATES ${eu} · the lower feeds up into the upper — support rising from the base`};
+  if(ELEM_KE[eu]===el) return {eu,el,rel:`${eu} CONTROLS ${el} · upper checks and constrains the lower — pressure from above`};
+  if(ELEM_KE[el]===eu) return {eu,el,rel:`${el} CONTROLS ${eu} · the lower pushes back against the upper — resistance from beneath`};
+  return {eu,el,rel:`${eu} / ${el} · no direct generating or controlling tie`};
+}
+// hu gua — nuclear hexagram: lines 2-3-4 become the new lower trigram,
+// lines 3-4-5 the new upper — the hidden process running underneath the cast
+function nuclearBits(bits){ return ((bits>>1)&7) | (((bits>>2)&7)<<3); }
+// fan gua — reverse/opposite: every line flipped, the shadow complement
+function reverseBits(bits){ return bits^63; }
+// cuo gua — inverse: the hexagram read upside down, line order reversed
+function inverseBits(bits){
+  let out=0; for(let i=0;i<6;i++) if(bits&(1<<i)) out|=1<<(5-i);
+  return out;
+}
+function structureHtml(kw){
+  const bits=BITS_OF[kw];
+  const nBits=nuclearBits(bits), nkw=KING_WEN[nBits];
+  const n2Bits=nuclearBits(nBits), n2kw=KING_WEN[n2Bits];
+  const rkw=KING_WEN[reverseBits(bits)];
+  const ikw=KING_WEN[inverseBits(bits)];
+  const {eu,el,rel}=elemRelation(bits>>3,bits&7);
+  const hx=k=>`${glyph(k)} ${k} ${NAMES[k]}`;
+  const row=(label,note,val,detail)=>
+    `<div class="ln">${label} <span class="dim">${note}</span> · ${val}<br><span class="dim">${detail}</span></div>`;
+  return sec('STRUCTURAL TRANSFORMS',
+    `<div style="font-size:12px; line-height:1.7; max-width:60ch">`+
+    row('NUCLEAR','hu gua',hx(nkw),'the hidden process underneath — lines 2-3-4 and 3-4-5 read as a hexagram of their own')+
+    row('NUCLEAR²','of the nuclear',hx(n2kw),n2kw===nkw?'stable — the process folds into itself and goes no deeper':'the long-range driver, one layer further down')+
+    row('REVERSE','fan gua, every line flipped',hx(rkw),'the shadow or complementary situation')+
+    row('INVERSE','cuo gua, read upside down',hx(ikw),ikw===kw?'palindromic — this hexagram reads the same turned over':'the same situation seen from the other side')+
+    row('ELEMENTS','upper over lower',`${eu} OVER ${el}`,rel)+
+    `</div>`);
+}
+// narrative arc for multi-line changes: walk the changing lines in order
+// (bottom to top) instead of presenting them as parallel/independent —
+// each step is the hexagram as it stands after that one line turns
+function sequenceHtml(kw,lines,moving){
+  if(moving.length<2) return '';
+  let bits=BITS_OF[kw];
+  const steps=[{kw,bits}];
+  moving.slice().sort((a,b)=>a-b).forEach(m=>{
+    bits=bits^(1<<(m-1));
+    steps.push({kw:KING_WEN[bits], line:m});
+  });
+  const arc=steps.map((s,i)=>i===0?`${glyph(s.kw)} ${s.kw}`:`line ${s.line} turns → ${glyph(s.kw)} ${s.kw}`).join('  ·  ');
+  return sec('SEQUENCE',
+    `<div style="font-size:12px; max-width:60ch">`+
+    `<span class="dim">read as one arc, lowest line first, not as parallel readings:</span><br>${arc}</div>`);
+}
 const MEAN=["",
  "Pure yang. The primal creative power of heaven; success through strength that perseveres.",
  "Pure yin. Devotion and receptivity; the earth that carries everything and completes what the creative begins.",
