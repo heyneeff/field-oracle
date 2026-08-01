@@ -164,6 +164,18 @@
   .summary .sect:first-child{margin-top:0}
   .summary .hdr{font-size:11px; letter-spacing:.14em; color:var(--phos-dim); margin-bottom:6px}
   .summary .ln+.ln{margin-top:8px}
+  /* collapsed-by-default term: a label you tap to unfold, so depth is
+     available without ever cluttering the default view */
+  .summary details.term{margin-top:16px}
+  .summary details.term:first-child{margin-top:0}
+  .summary details.term+details.term{margin-top:10px}
+  .summary details.term summary{cursor:pointer; font-size:11px; letter-spacing:.14em;
+    color:var(--phos-dim); list-style:none; user-select:none}
+  .summary details.term summary::-webkit-details-marker{display:none}
+  .summary details.term summary::before{content:'▸ '; color:var(--phos-faint)}
+  .summary details.term[open] summary::before{content:'▾ '}
+  .summary details.term summary:hover{color:#ffe9b0}
+  .summary details.term>*:not(summary){margin-top:6px}
   .summary table{border-collapse:collapse; font-variant-numeric:tabular-nums}
   /* stat rows: name column shrinks/wraps instead of forcing horizontal scroll */
   .stat-grid{display:grid; grid-template-columns:1fr auto auto; column-gap:14px; row-gap:3px; max-width:100%}
@@ -1010,16 +1022,22 @@ $('btnRead').onclick=()=>{
   const [tk,tc]=Object.entries(allTrans).sort((a,b)=>b[1]-a[1])[0];
   const hotLine=hotTotals.indexOf(Math.max(...hotTotals));
   const q=$('question').value.trim();
+  const RANKS=['PRIMARY','2ND','3RD'];
+  const rankRows=top.map(([k,c],i)=>sec(`${RANKS[i]} · ×${c}`,
+    `<div style="max-width:56ch; line-height:1.9">${k} - ${NAMES[+k]} - ${HEXT[+k].j}</div>`)).join('');
+  const flowRow=`<div class="sect"><div class="hdr" style="color:#ffe9b0; font-weight:700; letter-spacing:.2em; text-shadow:0 0 8px rgba(255,208,112,.8)">FLOWING TOWARD</div>`+
+    `<div style="max-width:56ch; line-height:1.9; font-size:12px">${tk} - ${NAMES[+tk]} - ${HEXT[+tk].j} <span class="dim">×${tc}</span></div></div>`;
+  const statsBody=`<div style="font-size:12px; line-height:1.9; max-width:58ch">`+
+    `TILT ${emaYang>.5?'YANG':'YIN'} ${Math.abs(emaYang-.5)*200|0}% <span class="dim">·</span> CHURN ${Math.round(emaMove*100)}% <span class="dim">(baseline 25%)</span><br>`+
+    `HOTTEST THREAD · LINE ${hotLine+1} moved ${hotTotals[hotLine]}× <span class="dim">(${Math.round(hotTotals[hotLine]/n*100)}%, baseline 25%)</span><br>`+
+    `<span class="dim">PRIMARY, BY BASELINE</span><br>`+
+    top.map(([k,c])=>`${glyph(+k)} ${k} ${NAMES[+k]} ×${c} <span class="dim">${(c/base).toFixed(1)}× baseline</span>`).join('<br>')+
+    `</div>`;
   summaryEl.innerHTML=
     `<h2>FIELD SUMMARY · ${n} CASTS${q?' · “'+q.replace(/</g,'&lt;').toUpperCase()+'”':''}</h2>`+
-    `<div class="big">${top.map(([k])=>glyph(+k)).join(' ')}</div>`+
-    `<div class="stat-grid">`+
-    top.map(([k,c])=>`<span>PRIMARY ${glyph(+k)} ${k} ${NAMES[k]}</span><span>×${c}</span><span class="dim">${(c/base).toFixed(1)}× BASELINE</span>`).join('')+
-    `<span>FLOWING → ${glyph(+tk)} ${tk} ${NAMES[tk]}</span><span>×${tc}</span><span class="dim">${(tc/base).toFixed(1)}× BASELINE</span></div>`+
-    `<div style="margin-top:12px">TILT ${emaYang>.5?'YANG':'YIN'} ${Math.abs(emaYang-.5)*200|0}%`+
-    ` <span class="dim">·</span> CHURN ${Math.round(emaMove*100)}% <span class="dim">(BASELINE 25%)</span></div>`+
-    `<div>HOTTEST THREAD · LINE ${hotLine+1} MOVED ${hotTotals[hotLine]}× <span class="dim">(${Math.round(hotTotals[hotLine]/n*100)}%, BASELINE 25%)</span></div>`+
-    `<div class="dim" style="margin-top:14px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RESUME · CLEAR TO ERASE THE TAPE</div>`;
+    rankRows+flowRow+
+    `<details class="term"><summary>FIELD STATS</summary>${statsBody}</details>`+
+    `<div class="dim" style="margin-top:16px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RESUME · CLEAR TO ERASE THE TAPE</div>`;
   ticker.textContent='READ · FIELD SUMMARY ON SCREEN';
 };
 // ---- single throw & 1000-cast field reading (pure: don't touch cascade state) ----
@@ -1109,15 +1127,17 @@ $('btnKilo').onclick=()=>{
   const neigh=neighborhoodCoherence(topP[0][0],prim,N);
   kilo.flowText=topT.map(([k,c])=>`${glyph(+k)} ${k} ${NAMES[k]} ×${c}`).join(' · ');
   kilo.shapeText=shapeOfAnswer(topP);
-  kilo.readingHtml=
-    `<h2>FIELD READING · ${N} CASTS${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
-    `<div style="margin-bottom:8px"><span class="btn" data-kv="grid">▦ VIEW THE FIELD GRID</span></div>`+
-    `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
-    `<div class="stat-grid">${topP.map(([k,c])=>`<span>${glyph(+k)} ${k} ${NAMES[k]}</span><span>×${c}</span><span class="dim">${(c/base).toFixed(1)}× BASELINE</span>`).join('')}</div>`+
-    `<div style="margin-top:10px">FLOWING → ${kilo.flowText}</div>`+
-    `<div style="margin-top:10px">COHERENCE ${coh.toFixed(4)}</div>`+
-    `<div>NEIGHBORHOOD (MODE + 6 NEAREST) ${neigh.total} CASTS <span class="dim">· ${neigh.ratio.toFixed(2)}× EXPECTED</span></div>`+
-    `<div>TILT ${yangPct>=50?'YANG':'YIN'} · ${yangPct.toFixed(1)}% YANG LINES</div>`+
+  const RANKS=['MODE','2ND','3RD'];
+  const rankRows=topP.map(([k,c],i)=>sec(`${RANKS[i]} · ×${c}`,
+    `<div style="max-width:56ch; line-height:1.9">${k} - ${NAMES[k]} - ${HEXT[k].j}</div>`)).join('');
+  const [flowK,flowC]=topT[0];
+  const flowRow=`<div class="sect"><div class="hdr" style="color:#ffe9b0; font-weight:700; letter-spacing:.2em; text-shadow:0 0 8px rgba(255,208,112,.8)">FLOWING TOWARD</div>`+
+    `<div style="max-width:56ch; line-height:1.9; font-size:12px">${flowK} - ${NAMES[flowK]} - ${HEXT[flowK].j} <span class="dim">×${flowC}</span></div></div>`;
+  const statsBody=
+    `<div style="font-size:12px; line-height:1.9; max-width:58ch">`+
+    `COHERENCE ${coh.toFixed(4)}<br>`+
+    `NEIGHBORHOOD (MODE + 6 NEAREST) ${neigh.total} CASTS <span class="dim">· ${neigh.ratio.toFixed(2)}× EXPECTED</span><br>`+
+    `TILT ${yangPct>=50?'YANG':'YIN'} · ${yangPct.toFixed(1)}% YANG LINES</div>`+
     `<div style="margin-top:10px; font-size:11px" class="dim">CHANGING LINES BY POSITION · BASELINE 25% · RED = BEYOND ~2σ</div>`+
     `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${lineCells}</div>`+
     `<div style="margin-top:12px; font-size:11px" class="dim">UPPER TRIGRAM WEATHER</div>`+
@@ -1125,10 +1145,14 @@ $('btnKilo').onclick=()=>{
     `<div style="font-size:11px" class="dim">LOWER TRIGRAM WEATHER</div>`+
     `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${triRow(lo)}</div>`+
     `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')}</div>`+
-    `<div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--phos-faint)">`+
-    `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
-    `<div style="max-width:58ch; line-height:1.8; margin-top:8px">${kilo.shapeText}</div>`+
-    `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN</div></div>`;
+    `<div style="margin-top:12px; font-size:11px" class="dim">PRIMARY, BY BASELINE</div>`+
+    `<div class="stat-grid">${topP.map(([k,c])=>`<span>${glyph(+k)} ${k} ${NAMES[k]}</span><span>×${c}</span><span class="dim">${(c/base).toFixed(1)}× BASELINE</span>`).join('')}</div>`;
+  kilo.readingHtml=
+    `<h2>FIELD READING · ${N} CASTS${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
+    `<div style="margin-bottom:8px"><span class="btn" data-kv="grid">▦ VIEW THE FIELD GRID</span></div>`+
+    rankRows+flowRow+
+    `<details class="term"><summary>FIELD STATS</summary>${statsBody}</details>`+
+    `<div class="dim" style="margin-top:16px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN</div>`;
   // the ticker reads first, alone, before anything visual — then the field
   // itself assembles into view (fades in from center) and the casts pulse it live
   stopKiloAnim();
@@ -1471,17 +1495,20 @@ function structureHtml(kw){
   const rkw=KING_WEN[reverseBits(bits)];
   const ikw=KING_WEN[inverseBits(bits)];
   const {eu,el,rel}=elemRelation(bits>>3,bits&7);
-  const hx=k=>`${glyph(k)} ${k} ${NAMES[k]}`;
-  const row=(label,note,val,detail)=>
-    `<div class="ln">${label} <span class="dim">${note}</span> · ${val}<br><span class="dim">${detail}</span></div>`;
+  const hx=k=>`${k} - ${NAMES[k]} - ${HEXT[k].j}`;
+  const term=(label,explain,body)=>
+    `<details class="term"><summary>${label}</summary>`+
+    `<div class="dim" style="font-size:11px">${explain}</div>`+
+    `<div style="font-size:12px; line-height:1.7; max-width:58ch">${body}</div></details>`;
   return sec('STRUCTURAL TRANSFORMS',
-    `<div style="font-size:12px; line-height:1.7; max-width:60ch">`+
-    row('NUCLEAR','hu gua',hx(nkw),'the hidden process underneath — lines 2-3-4 and 3-4-5 read as a hexagram of their own')+
-    row('NUCLEAR²','of the nuclear',hx(n2kw),n2kw===nkw?'stable — the process folds into itself and goes no deeper':'the long-range driver, one layer further down')+
-    row('REVERSE','fan gua, every line flipped',hx(rkw),'the shadow or complementary situation')+
-    row('INVERSE','cuo gua, read upside down',hx(ikw),ikw===kw?'palindromic — this hexagram reads the same turned over':'the same situation seen from the other side')+
-    row('ELEMENTS','upper over lower',`${eu} OVER ${el}`,rel)+
-    `</div>`);
+    term('NUCLEAR','The hidden process underneath — lines 2-3-4 and 3-4-5 read as a hexagram of their own.',hx(nkw))+
+    term('NUCLEAR²','The nuclear of the nuclear — the long-range driver, one layer further down.',
+      n2kw===nkw?`${hx(n2kw)}<br><span class="dim">stable — the process folds into itself and goes no deeper</span>`:hx(n2kw))+
+    term('REVERSE','Every line flipped — the shadow or complementary situation.',hx(rkw))+
+    term('INVERSE','Read upside down — the same situation seen from the other side.',
+      ikw===kw?`${hx(ikw)}<br><span class="dim">palindromic — this hexagram reads the same turned over</span>`:hx(ikw))+
+    term('ELEMENTS','How the upper and lower trigrams relate.',`${eu} OVER ${el} — ${rel}`)
+  );
 }
 // narrative arc for multi-line changes: walk the changing lines in order
 // (bottom to top) instead of presenting them as parallel/independent —
