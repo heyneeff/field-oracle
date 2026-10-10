@@ -189,6 +189,12 @@
     padding:8px 16px; font-size:11px; line-height:1.6; color:var(--phos-dim);
     text-shadow:0 0 6px rgba(255,176,0,.3)}
   #kiloDefs b{color:var(--phos); font-weight:400}
+  /* starts collapsed to a slim tab so the sphere gets the whole screen */
+  #kiloDefs .tab{cursor:pointer; user-select:none; font-size:10px; letter-spacing:.15em; color:var(--phos-dim); text-align:center}
+  #kiloDefs .tab:hover{color:#ffe9b0}
+  #kiloDefs.collapsed{padding-top:4px; padding-bottom:4px; overflow:hidden}
+  #kiloDefs.collapsed .body{display:none}
+  #kiloDefs:not(.collapsed) .tab{margin-bottom:6px}
   #kiloCascade{position:absolute; top:56px; right:0; bottom:34px; width:200px; z-index:4; display:none;
     flex-direction:row; background:rgba(20,15,7,.92); border-left:1px solid var(--phos-faint);
     transition:width .25s ease}
@@ -656,6 +662,7 @@ function exitKiloView(){
   if(rainColorMode==='kilo'){
     stopKiloAnim(); stopSphereAnim(); rainColorMode='live'; if(rainView) setRainView(false);
     $('console').classList.remove('kilo-full');
+    sphereFocus=null; focusTween=null;
   }
 }
 const rainCv=$('rain'), rg=rainCv.getContext('2d');
@@ -750,6 +757,10 @@ const HEX_EDGES = (()=>{
   }
   return edges;
 })();
+// adjacency lookup for the same graph — the 6 one-line neighbors of any
+// hexagram, used to light up a clicked point's connectors on the sphere
+const NEIGH_OF={};
+HEX_EDGES.forEach(([a,b])=>{ (NEIGH_OF[a]=NEIGH_OF[a]||[]).push(b); (NEIGH_OF[b]=NEIGH_OF[b]||[]).push(a); });
 // the hypercube graph's distance is just Hamming distance — no BFS needed,
 // XOR the two line-patterns and count the differing bits
 // coherence-by-count only asks "does one hexagram dominate?" — it's blind to
@@ -778,16 +789,45 @@ function shapeOfAnswer(topP){
   ).join('');
 }
 let sphereAnimId=null, sphereRotY=0, sphereIntroT=1, heat={}, pulses=[], lastProjected=[];
+let sphereFocus=null, focusTween=null; // sphereFocus = clicked hexagram, lit up with its neighbors
 function stopSphereAnim(){ if(sphereAnimId){ cancelAnimationFrame(sphereAnimId); sphereAnimId=null; } }
 function startSphereAnim(){ sphereIntroT=0; if(!sphereAnimId) sphereAnimId=requestAnimationFrame(sphereFrame); }
 function sphereFrame(){
   if(rainColorMode!=='kilo' || !rainView){ sphereAnimId=null; return; }
-  sphereRotY+=0.0035;
+  if(focusTween){
+    const t=Math.min(1,(performance.now()-focusTween.t0)/focusTween.dur);
+    const e=1-Math.pow(1-t,3); // easeOutCubic — settles into the click, doesn't overshoot
+    sphereRotY=focusTween.fromY+(focusTween.toY-focusTween.fromY)*e;
+    sphereRotX=focusTween.fromX+(focusTween.toX-focusTween.fromX)*e;
+    sphereZoom=focusTween.fromZ+(focusTween.toZ-focusTween.fromZ)*e;
+    if(t>=1) focusTween=null;
+  } else {
+    sphereRotY+=0.0035;
+  }
   if(sphereIntroT<1) sphereIntroT=Math.min(1,sphereIntroT+0.02);
   drawSphere();
   sphereAnimId=requestAnimationFrame(sphereFrame);
 }
 let sphereRotX=0.15, sphereZoom=1; // rotX = manual pitch tilt; zoom = user-controlled scale
+// shortest angular step from `current` to `target` (handles unwrapped rotY
+// after long ambient spinning, and the 2π wrap on target angles from atan2)
+function angDelta(target,current){
+  let d=(target-current)%(Math.PI*2);
+  if(d>Math.PI) d-=Math.PI*2;
+  if(d<-Math.PI) d+=Math.PI*2;
+  return d;
+}
+// solve for the rotY/rotX that bring a given hexagram's point to face the
+// camera dead-on (x=0, y=0, z maximal) — same projection math as projectPoint,
+// run backward for one point instead of forward for all 64
+function focusHexagram(kw){
+  const p=HEX_SPHERE[kw];
+  let targetY=Math.atan2(-p.x,p.z);
+  let z0=-p.x*Math.sin(targetY)+p.z*Math.cos(targetY);
+  if(z0<0){ targetY+=Math.PI; z0=-z0; }
+  const targetX=Math.atan2(p.y,z0); // z0>=0 by construction, so this is already in [-π/2, π/2]
+  return {rotY:sphereRotY+angDelta(targetY,sphereRotY), rotX:targetX};
+}
 function projectPoint(p,w,h){
   const cosY=Math.cos(sphereRotY), sinY=Math.sin(sphereRotY);
   const x=p.x*cosY+p.z*sinY, z0=-p.x*sinY+p.z*cosY, y0=p.y;
@@ -822,6 +862,14 @@ function drawSphere(){
     const p1=proj[k1], p2=proj[k2];
     const depthFade=Math.max(0,Math.min(1,(((p1.scale+p2.scale)/2)-0.55)/0.85));
     if(depthFade<=0.03) continue;
+    // a clicked hexagram's own 6 connectors light up white regardless of
+    // resonance — that's the structure being pointed at, not a stat
+    if(sphereFocus && (k1===sphereFocus||k2===sphereFocus)){
+      rg.strokeStyle=`rgba(255,255,255,${(depthFade*0.85).toFixed(3)})`;
+      rg.lineWidth=2.2;
+      rg.beginPath(); rg.moveTo(p1.sx,p1.sy); rg.lineTo(p2.sx,p2.sy); rg.stroke();
+      continue;
+    }
     let resonance=0;
     if(kilo && (heat[k1]||0)>0 && (heat[k2]||0)>0){
       const e1=Math.max(0,(kilo.counts[k1]||0)/base-1), e2=Math.max(0,(kilo.counts[k2]||0)/base-1);
@@ -848,10 +896,16 @@ function drawSphere(){
     if(kw===a){ fill=`rgba(255,90,40,${Math.min(1,0.8+heatV*0.2)*depthFade})`; glow=30+breathe*16; sizeMult=1.55; }
     else if(kw===b){ fill=`rgba(255,225,150,${Math.min(1,0.72+heatV*0.25)*depthFade})`; glow=22+breathe*12; sizeMult=1.35; }
     else if(kw===c){ fill=`rgba(255,190,90,${Math.min(1,0.64+heatV*0.3)*depthFade})`; glow=16+breathe*10; sizeMult=1.18; }
+    // the clicked hexagram and its 6 line-change neighbors get their own
+    // treatment on top of (or instead of) the MODE/2ND/3RD coloring —
+    // white for the point itself, cyan for what it's directly connected to
+    const isFocus=kw===sphereFocus, isNeigh=sphereFocus && !isFocus && (NEIGH_OF[sphereFocus]||[]).includes(kw);
+    if(isFocus){ fill=`rgba(255,255,255,${Math.min(1,0.85+heatV*0.15)*depthFade})`; glow=Math.max(glow,32); sizeMult=Math.max(sizeMult,1.6); }
+    else if(isNeigh){ fill=`rgba(140,230,255,${Math.min(1,0.6+heatV*0.3)*depthFade})`; glow=Math.max(glow,20); sizeMult=Math.max(sizeMult,1.25); }
     if(flash>0) glow=Math.max(glow,18*flash);
     rg.font=(24*sizeMult*Math.max(0.55,Math.min(1.7,pj.scale)))+'px '+getComputedStyle(document.body).fontFamily;
     if(glow>0){ // double-pass bloom: soft halo first, crisp glyph on top
-      rg.shadowColor='rgba(255,150,60,'+Math.min(1,Math.max(flash,0.75))+')';
+      rg.shadowColor=isFocus?'rgba(255,255,255,0.95)':isNeigh?'rgba(140,230,255,0.85)':'rgba(255,150,60,'+Math.min(1,Math.max(flash,0.75))+')';
       rg.shadowBlur=glow;
       rg.fillStyle=fill;
       rg.fillText(glyph(kw), pj.sx, pj.sy);
@@ -859,6 +913,10 @@ function drawSphere(){
     rg.shadowBlur=0;
     rg.fillStyle=fill;
     rg.fillText(glyph(kw), pj.sx, pj.sy);
+    if(isFocus){ // selection ring, so the focused point reads clearly even once the glow settles
+      rg.beginPath(); rg.arc(pj.sx,pj.sy,16*Math.max(0.55,Math.min(1.7,pj.scale)),0,Math.PI*2);
+      rg.strokeStyle='rgba(255,255,255,0.8)'; rg.lineWidth=1.4; rg.stroke();
+    }
   }
 }
 // grab-to-spin + wheel/pinch-to-zoom the sphere (Pointer Events cover mouse+touch+pen alike)
@@ -912,7 +970,15 @@ rainCv.addEventListener('click',e=>{
   if(rainColorMode==='kilo'){
     let best=null, bestD=Infinity;
     for(const p of lastProjected){ const d=(p.sx-x)**2+(p.sy-y)**2; if(d<bestD){ bestD=d; best=p; } }
-    if(best && bestD<32*32) ticker.textContent=cellInfoText(best.kw);
+    if(best && bestD<32*32){
+      sphereFocus=best.kw;
+      const target=focusHexagram(best.kw);
+      focusTween={fromY:sphereRotY,fromX:sphereRotX,fromZ:sphereZoom,
+        toY:target.rotY,toX:target.rotX,toZ:Math.min(2.3,Math.max(sphereZoom,1.8)),
+        t0:performance.now(),dur:500};
+      updateNowFocus(best.kw);
+      ticker.textContent=cellInfoText(best.kw);
+    }
     return;
   }
   const cw=cellW(), ch=cellH();
@@ -941,9 +1007,11 @@ function updateKiloToggle(){
 }
 function kiloDefsHtml(){
   const label=t=>`<span style="letter-spacing:.18em; font-size:9px" class="dim">${t}</span>`;
-  return `<div>${label('SHAPE')}<br>${kilo.shapeText}</div>`+
-    `<div style="margin-top:10px">${label('FLOW')}<br>${kilo.flowText}</div>`;
+  return `<div class="tab" data-kv="defs">▤ SHAPE · FLOW</div><div class="body">`+
+    `<div>${label('SHAPE')}<br>${kilo.shapeText}</div>`+
+    `<div style="margin-top:10px">${label('FLOW')}<br>${kilo.flowText}</div></div>`;
 }
+$('kiloDefs').onclick=e=>{ if(e.target.closest('.tab')) $('kiloDefs').classList.toggle('collapsed'); };
 $('kiloToggle').onclick=e=>{ if(kilo && e.target.closest('[data-kv="reading"]')) showScreen(kilo.readingHtml); };
 $('kiloCascadeTab').onclick=()=>{ $('kiloCascade').classList.toggle('collapsed'); };
 function cascadeLog(i,kw){
@@ -1048,6 +1116,17 @@ function updateNowField(top){ // top: ranked array of kw numbers (e.g. the top 3
   $('nowName').textContent=top.map(kw=>NAMES[kw]).join(' · ');
   $('nowDecimal').textContent='';
 }
+// clicking a hexagram on the kilo sphere swaps the NOW panel from the
+// top-3 overview to that one hexagram's own count/rank — the display
+// follows the tap instead of staying fixed on the modal three
+function updateNowFocus(kw){
+  const base=kilo.casts.length/64, c=kilo.counts[kw]||0;
+  const rank=kilo.top[0]===kw?'MODE · ':kilo.top[1]===kw?'2ND · ':kilo.top[2]===kw?'3RD · ':'';
+  $('nowRow').className='now-row';
+  $('nowRow').innerHTML=nowHexHtml(kw);
+  $('nowName').textContent=NAMES[kw];
+  $('nowDecimal').textContent=`${rank}×${c} · ${(c/base).toFixed(1)}× BASELINE`;
+}
 function resetNow(){
   $('nowRow').className='now-row';
   $('nowRow').innerHTML='<div class="now-hex"><span class="now-glyph">䷀</span></div>';
@@ -1061,7 +1140,7 @@ $('btnCast').onclick=()=>{
   const trans=kwOf(lines.map(v=>v===6?7:v===9?8:v));
   const bits=BITS_OF[kw], lower=TRIGRAMS[bits&7], upper=TRIGRAMS[bits>>3];
   const changeRows=moving.map(m=>
-    `<div class="ln"><span class="dim">LINE ${m} · ${lines[m-1]===6?'OLD YIN ✕ → YANG':'OLD YANG ○ → YIN'}</span><br>${HEXT[kw].l[m-1]}</div>`
+    `<div class="ln"><span class="dim">${kw}.${m} · ${lines[m-1]===6?'OLD YIN ✕ → YANG':'OLD YANG ○ → YIN'}</span><br>${HEXT[kw].l[m-1]}</div>`
   ).join('');
   showScreen(
     `<h2>SINGLE CAST${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
@@ -1113,32 +1192,36 @@ $('btnKilo').onclick=()=>{
   kilo.shapeText=shapeOfAnswer(topP);
   kilo.readingHtml=
     `<h2>FIELD READING · ${N} CASTS${q?' · “'+esc(q).toUpperCase()+'”':''}</h2>`+
-    `<div style="margin-bottom:8px"><span class="btn" data-kv="grid">▦ VIEW THE FIELD GRID</span></div>`+
-    `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
-    `<div class="stat-grid">${topP.map(([k,c])=>`<span>${glyph(+k)} ${k} ${NAMES[k]}</span><span>×${c}</span><span class="dim">${(c/base).toFixed(1)}× BASELINE</span>`).join('')}</div>`+
-    `<div style="margin-top:10px">FLOWING → ${kilo.flowText}</div>`+
-    `<div style="margin-top:10px">COHERENCE ${coh.toFixed(4)}</div>`+
-    `<div>NEIGHBORHOOD (MODE + 6 NEAREST) ${neigh.total} CASTS <span class="dim">· ${neigh.ratio.toFixed(2)}× EXPECTED</span></div>`+
-    `<div>TILT ${yangPct>=50?'YANG':'YIN'} · ${yangPct.toFixed(1)}% YANG LINES</div>`+
-    `<div style="margin-top:10px; font-size:11px" class="dim">CHANGING LINES BY POSITION · BASELINE 25% · RED = BEYOND ~2σ</div>`+
-    `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${lineCells}</div>`+
-    `<div style="margin-top:12px; font-size:11px" class="dim">UPPER TRIGRAM WEATHER</div>`+
-    `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${triRow(up)}</div>`+
-    `<div style="font-size:11px" class="dim">LOWER TRIGRAM WEATHER</div>`+
-    `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${triRow(lo)}</div>`+
-    `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">MOVING-LINE DIST ${mvDist.map((c,i)=>`${i}:${c}`).join(' ')}</div>`+
-    `<div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--phos-faint)">`+
-    `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
-    `<div style="max-width:58ch; line-height:1.8; margin-top:8px">${kilo.shapeText}</div>`+
-    `<div class="dim" style="margin-top:12px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN</div></div>`;
+    `<div><span class="btn" data-kv="grid">▦ VIEW THE FIELD GRID</span></div>`+
+    sec('PRIMARY HEXAGRAMS',
+      `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
+      `<div class="stat-grid" style="margin-top:6px">${topP.map(([k,c])=>`<span>${glyph(+k)} ${k} ${NAMES[k]}</span><span>×${c}</span><span class="dim">${(c/base).toFixed(1)}× BASELINE</span>`).join('')}</div>`)+
+    sec('FLOWING TOWARD', `<div style="font-size:12px">${kilo.flowText}</div>`)+
+    sec('FIELD STATISTICS',
+      `<div class="ln">COHERENCE ${coh.toFixed(4)}</div>`+
+      `<div class="ln">NEIGHBORHOOD (MODE + 6 NEAREST) ${neigh.total} CASTS <span class="dim">· ${neigh.ratio.toFixed(2)}× EXPECTED</span></div>`+
+      `<div class="ln">TILT ${yangPct>=50?'YANG':'YIN'} · ${yangPct.toFixed(1)}% YANG LINES</div>`)+
+    sec('CHANGING LINES BY POSITION',
+      `<div class="dim" style="font-size:11px; margin-bottom:4px">BASELINE 25% · RED = BEYOND ~2σ</div>`+
+      `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${lineCells}</div>`)+
+    sec('TRIGRAM WEATHER',
+      `<div class="dim" style="font-size:11px; margin-bottom:2px">UPPER</div>`+
+      `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${triRow(up)}</div>`+
+      `<div class="dim" style="font-size:11px; margin:8px 0 2px">LOWER</div>`+
+      `<div style="display:flex; flex-wrap:wrap; gap:6px 14px">${triRow(lo)}</div>`)+
+    sec('MOVING-LINE DISTRIBUTION', `<div style="font-size:12px">${mvDist.map((c,i)=>`${i}:${c}`).join('  ')}</div>`)+
+    sec('SHAPE OF THE ANSWER',
+      `<div class="big">${topP.map(([k])=>glyph(+k)).join(' ')}</div>`+
+      `<div style="max-width:58ch; line-height:1.8; margin-top:8px">${kilo.shapeText}</div>`)+
+    `<div class="dim" style="margin-top:16px; font-size:11px; letter-spacing:.12em">PRESS CAST TO RETURN</div>`;
   // the ticker reads first, alone, before anything visual — then the field
   // itself assembles into view (fades in from center) and the casts pulse it live
   stopKiloAnim();
   if(kiloStartTimer){ clearTimeout(kiloStartTimer); kiloStartTimer=null; }
   if(running) hold(); // don't let a live continuous cast collide with the sphere draw
   rainColorMode='kilo';
-  heat={}; pulses=[]; sphereRotY=0; sphereRotX=0.15; sphereZoom=1;
-  $('kiloCascadeLog').innerHTML=''; $('kiloCascade').classList.remove('collapsed');
+  heat={}; pulses=[]; sphereRotY=0; sphereRotX=0.15; sphereZoom=1; sphereFocus=null; focusTween=null;
+  $('kiloCascadeLog').innerHTML=''; $('kiloCascade').classList.remove('collapsed'); $('kiloDefs').classList.add('collapsed');
   setScreen('feed'); // uncover the crt (still blank/dark for a beat — no sphere yet)
   ticker.textContent=`FIELD · CASTING 1000${q?' · “'+esc(q).toUpperCase()+'”':''}...`;
   updateNowField(topP.map(([k])=>+k));
