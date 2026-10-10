@@ -199,6 +199,11 @@
     flex-direction:row; background:rgba(20,15,7,.92); border-left:1px solid var(--phos-faint);
     transition:width .25s ease}
   #kiloCascade.collapsed{width:26px}
+  /* keep the defs panel and header clear of the cascade so neither is clipped under it */
+  .crt:has(#kiloCascade:not(.collapsed)) #kiloDefs{right:200px}
+  .crt:has(#kiloCascade:not(.collapsed)) #kiloToggle{left:calc(50% - 100px); width:calc(100% - 232px)}
+  .crt:has(#kiloCascade.collapsed) #kiloDefs{right:26px}
+  .crt:has(#kiloCascade.collapsed) #kiloToggle{left:calc(50% - 13px); width:calc(100% - 58px)}
   #kiloCascade.collapsed #kiloCascadeLog{display:none}
   #kiloCascadeTab{flex:none; width:26px; cursor:pointer; user-select:none;
     writing-mode:vertical-rl; text-orientation:mixed; display:flex; align-items:center; justify-content:center;
@@ -214,7 +219,11 @@
     55%{color:#ffe9b0}
     100%{opacity:1; transform:translateY(0); color:var(--phos-dim)}
   }
-  @media(max-width:760px){ #kiloCascade{width:140px} }
+  @media(max-width:760px){
+    #kiloCascade{width:140px}
+    .crt:has(#kiloCascade:not(.collapsed)) #kiloDefs{right:140px}
+    .crt:has(#kiloCascade:not(.collapsed)) #kiloToggle{left:calc(50% - 70px); width:calc(100% - 172px)}
+  }
   .hexgrid{display:grid; grid-template-columns:repeat(8,1fr); gap:2px; max-width:420px}
   .hexgrid span{cursor:pointer; font-size:24px; text-align:center; padding:2px; border-radius:3px}
   .hexgrid span:hover{background:rgba(255,176,0,.14)}
